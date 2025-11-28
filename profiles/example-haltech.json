@@ -1,0 +1,58 @@
+{
+    "$schema": "../protocols/profile-schema.json",
+    "name": "Haltech Elite/Nexus",
+    "description": "Profile for Haltech Elite and Nexus series ECUs via CAN bus",
+    "adapter": "haltech",
+    "adapterConfig": {
+        "interface": "can0",
+        "protocolFile": "../protocols/haltech/haltech-can-protocol-v2.35.json",
+        "baseAddress": "0x360"
+    },
+    "display": {
+        "cluster": {
+            "enabled": true,
+            "screen": 0,
+            "layout": "default"
+        },
+        "headunit": {
+            "enabled": true,
+            "screen": 1,
+            "layout": "default"
+        }
+    },
+    "units": {
+        "temperature": "celsius",
+        "pressure": "kpa",
+        "speed": "kmh"
+    },
+    "warnings": {
+        "coolantTemperature": {
+            "warning": 95,
+            "critical": 105
+        },
+        "oilPressure": {
+            "warning": 150,
+            "critical": 100
+        },
+        "oilTemperature": {
+            "warning": 120,
+            "critical": 140
+        },
+        "batteryVoltage": {
+            "warning": 12.5,
+            "critical": 12.0
+        }
+    },
+    "channelMapping": {
+        "rpm": "RPM",
+        "throttlePosition": "Throttle Position",
+        "coolantTemperature": "Engine Coolant Temperature",
+        "oilTemperature": "Engine Oil Temperature",
+        "oilPressure": "Engine Oil Pressure",
+        "manifoldPressure": "Manifold Pressure",
+        "intakeAirTemperature": "Intake Air Temperature",
+        "batteryVoltage": "Battery Voltage",
+        "vehicleSpeed": "Vehicle Speed",
+        "gear": "Gear Position"
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(ctest:*)",
+      "Bash(cmake --build:*)",
+      "Bash(cat:*)",
+      "Bash(cmake --preset dev:*)",
+      "Bash(apt list:*)",
+      "Bash(cmake:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "model": "opusplan"
+}

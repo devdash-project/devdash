@@ -1,0 +1,46 @@
+{
+    "name": "devdash",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "runArgs": [
+        "--privileged",
+        "--cap-add=NET_ADMIN"
+    ],
+    "mounts": [
+        "source=devdash-claude-config,target=/home/ubuntu/.claude,type=volume"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "llvm-vs-code-extensions.vscode-clangd",
+                "ms-vscode.cmake-tools",
+                "theqtcompany.qt",
+                "bbenoist.qml",
+                "cschlosser.doxdocgen",
+                "eamodio.gitlens",
+                "editorconfig.editorconfig",
+                "usernamehw.errorlens"
+            ],
+            "settings": {
+                "cmake.configureOnOpen": true,
+                "cmake.generator": "Ninja",
+                "clangd.arguments": [
+                    "--background-index",
+                    "--clang-tidy",
+                    "--header-insertion=iwyu",
+                    "--completion-style=detailed"
+                ],
+                "editor.formatOnSave": true,
+                "[cpp]": {
+                    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+                }
+            }
+        }
+    },
+    "postCreateCommand": "sudo chown -R $(id -u):$(id -g) /home/ubuntu/.claude 2>/dev/null || mkdir -p /home/ubuntu/.claude && bash .devcontainer/setup-vcan.sh && bash .devcontainer/start-display.sh",
+    "remoteUser": "ubuntu",
+    "forwardPorts": [
+        6080
+    ]
+}

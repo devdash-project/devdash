@@ -1,0 +1,1301 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "protocol": {
+    "name": "Haltech PD16 CAN Protocol",
+    "version": "1.0.0",
+    "description": "CAN bus protocol for Haltech PD16 Power Distribution Module",
+    "source": "https://support.haltech.com/portal/en/kb/articles/haltech-can-pd-16-protocol",
+    "bus": {
+      "speed": 1000000,
+      "id_format": "11-bit",
+      "byte_order": "big_endian"
+    },
+    "notes": [
+      "Supports up to 4 PD16 devices on a single CAN bus (A, B, C, D)",
+      "Uses multiplexing to reduce CAN ID usage - byte 0 contains Mux ID",
+      "Mux ID bits 7-5 = IO Type, bits 3-0 = IO Index",
+      "ECU sends commands to PD16 (RX frames), PD16 reports status back (TX frames)"
+    ]
+  },
+  "devices": {
+    "PD16_A": {
+      "base_id": "0x6D0",
+      "id_offset": 0
+    },
+    "PD16_B": {
+      "base_id": "0x6D8",
+      "id_offset": 8
+    },
+    "PD16_C": {
+      "base_id": "0x6E0",
+      "id_offset": 16
+    },
+    "PD16_D": {
+      "base_id": "0x6E8",
+      "id_offset": 24
+    }
+  },
+  "mux_types": {
+    "25A": {
+      "type_id": 0,
+      "description": "25 Amp high current outputs",
+      "count": 4,
+      "indices": {
+        "0": "25A-HCO1",
+        "1": "25A-HCO2",
+        "2": "25A-HCO3",
+        "3": "25A-HCO4"
+      }
+    },
+    "8A": {
+      "type_id": 1,
+      "description": "8 Amp high side outputs",
+      "count": 10,
+      "indices": {
+        "0": "8A-HCO1",
+        "1": "8A-HCO2",
+        "2": "8A-HCO3",
+        "3": "8A-HCO4",
+        "4": "8A-HCO5",
+        "5": "8A-HCO6",
+        "6": "8A-HCO7",
+        "7": "8A-HCO8",
+        "8": "8A-HCO9",
+        "9": "8A-HCO10"
+      }
+    },
+    "HALF_BRIDGE": {
+      "type_id": 2,
+      "description": "Half bridge outputs for DC motor control",
+      "count": 2,
+      "indices": {
+        "0": "HBO1",
+        "1": "HBO2"
+      }
+    },
+    "SPI": {
+      "type_id": 3,
+      "description": "Speed/Pulse inputs",
+      "count": 4,
+      "indices": {
+        "0": "SPI1",
+        "1": "SPI2",
+        "2": "SPI3",
+        "3": "SPI4"
+      }
+    },
+    "AVI": {
+      "type_id": 4,
+      "description": "Analog voltage inputs",
+      "count": 4,
+      "indices": {
+        "0": "AVI1",
+        "1": "AVI2",
+        "2": "AVI3",
+        "3": "AVI4"
+      }
+    }
+  },
+  "enums": {
+    "retry_count": {
+      "0": "never",
+      "1": "1",
+      "2": "2",
+      "3": "5",
+      "4": "10",
+      "5": "20",
+      "6": "30",
+      "7": "always"
+    },
+    "drive_type_25a": {
+      "0": "undefined",
+      "1": "high_side",
+      "2": "both",
+      "3": "open_circuit"
+    },
+    "drive_type_8a": {
+      "0": "undefined",
+      "1": "undefined",
+      "2": "high_side",
+      "3": "open_circuit"
+    },
+    "drive_type_hbo": {
+      "0": "low_side",
+      "1": "high_side",
+      "2": "both",
+      "3": "open_circuit"
+    },
+    "safe_state": {
+      "0": "inactive",
+      "1": "active",
+      "2": "open_circuit"
+    },
+    "active_state": {
+      "0": "low",
+      "1": "high"
+    },
+    "pin_state": {
+      "0": "operational",
+      "1": "high_current",
+      "2": "over_current",
+      "3": "short_circuit",
+      "4": "open_circuit"
+    },
+    "device_status": {
+      "0": "in_bootmode",
+      "1": "in_firmware",
+      "2": "hardware_failure",
+      "3": "firmware_erased",
+      "4": "watchdog_timeout",
+      "5": "illegal_opcode"
+    },
+    "temperature_status": {
+      "0": "ok",
+      "1": "warning_115c",
+      "2": "shutdown_145c"
+    },
+    "spi_edge": {
+      "0": "falling",
+      "1": "rising"
+    },
+    "avi_pullup": {
+      "0": "disabled",
+      "1": "enabled_1k",
+      "2": "enabled_240ohm"
+    }
+  },
+  "frames": {
+    "ecu_to_pd16": {
+      "output_control": {
+        "id_offset": 0,
+        "rate_hz": 20,
+        "direction": "RX",
+        "description": "High priority output duty cycle and frequency commands",
+        "variants": {
+          "25A": {
+            "mux_type": 0,
+            "mux_indices": [0, 1, 2, 3],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 0
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false,
+                "description": "0-3 for 25A outputs"
+              },
+              {
+                "name": "Duty Cycle",
+                "position": "1:7-2:0",
+                "signed": false,
+                "units": "%",
+                "conversion": "y = x / 10",
+                "raw_max": 1000
+              },
+              {
+                "name": "Frequency",
+                "position": "3:7-4:0",
+                "signed": false,
+                "units": "Hz",
+                "conversion": "y = x",
+                "raw_max": 1000
+              }
+            ]
+          },
+          "8A": {
+            "mux_type": 1,
+            "mux_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 1
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false,
+                "description": "0-9 for 8A outputs"
+              },
+              {
+                "name": "Duty Cycle",
+                "position": "1:7-2:0",
+                "signed": false,
+                "units": "%",
+                "conversion": "y = x / 10",
+                "raw_max": 1000
+              },
+              {
+                "name": "Frequency",
+                "position": "3:7-4:0",
+                "signed": false,
+                "units": "Hz",
+                "conversion": "y = x",
+                "raw_max": 1000
+              }
+            ]
+          },
+          "HALF_BRIDGE": {
+            "mux_type": 2,
+            "mux_indices": [0, 1],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 2
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false,
+                "description": "0-1 for HBO outputs"
+              },
+              {
+                "name": "Duty Cycle",
+                "position": "1:7-2:0",
+                "signed": false,
+                "units": "%",
+                "conversion": "y = x / 10",
+                "raw_max": 1000
+              },
+              {
+                "name": "Frequency",
+                "position": "3:7-4:0",
+                "signed": false,
+                "units": "Hz",
+                "conversion": "y = x",
+                "raw_max": 1000
+              }
+            ]
+          }
+        }
+      },
+      "output_config": {
+        "id_offset": 1,
+        "rate_hz": 2,
+        "direction": "RX",
+        "description": "Low priority output and input configuration",
+        "variants": {
+          "25A": {
+            "mux_type": 0,
+            "mux_indices": [0, 1, 2, 3],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 0
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Retries",
+                "position": "1:7-1:5",
+                "signed": false,
+                "enum": "retry_count"
+              },
+              {
+                "name": "Drive Type",
+                "position": "1:4-1:3",
+                "signed": false,
+                "enum": "drive_type_25a"
+              },
+              {
+                "name": "Safe State",
+                "position": "1:2-1:1",
+                "signed": false,
+                "enum": "safe_state"
+              },
+              {
+                "name": "Active State",
+                "position": "1:0",
+                "signed": false,
+                "enum": "active_state"
+              },
+              {
+                "name": "Retry Delay",
+                "position": "2:7-2:0",
+                "signed": false,
+                "units": "seconds",
+                "conversion": "y = x",
+                "range": [0, 240]
+              },
+              {
+                "name": "Fuse Current",
+                "position": "3:7-3:0",
+                "signed": false,
+                "units": "A",
+                "conversion": "y = x * 0.2",
+                "range": [0, 250]
+              },
+              {
+                "name": "Soft Start Current",
+                "position": "4:7-4:0",
+                "signed": false,
+                "units": "A",
+                "conversion": "y = x * 0.2",
+                "range": [0, 250]
+              },
+              {
+                "name": "Soft Start Duration",
+                "position": "5:7-5:0",
+                "signed": false,
+                "units": "seconds",
+                "conversion": "y = x * 0.1",
+                "range": [0, 250]
+              }
+            ]
+          },
+          "8A": {
+            "mux_type": 1,
+            "mux_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 1
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Retries",
+                "position": "1:7-1:5",
+                "signed": false,
+                "enum": "retry_count"
+              },
+              {
+                "name": "Drive Type",
+                "position": "1:4-1:3",
+                "signed": false,
+                "enum": "drive_type_8a"
+              },
+              {
+                "name": "Safe State",
+                "position": "1:2-1:1",
+                "signed": false,
+                "enum": "safe_state"
+              },
+              {
+                "name": "Active State",
+                "position": "1:0",
+                "signed": false,
+                "enum": "active_state"
+              },
+              {
+                "name": "Retry Delay",
+                "position": "2:7-2:0",
+                "signed": false,
+                "units": "seconds",
+                "conversion": "y = x",
+                "range": [0, 240]
+              },
+              {
+                "name": "Fuse Current",
+                "position": "3:7-3:0",
+                "signed": false,
+                "units": "A",
+                "conversion": "y = x * 0.2",
+                "range": [0, 250]
+              }
+            ]
+          },
+          "HALF_BRIDGE": {
+            "mux_type": 2,
+            "mux_indices": [0, 1],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 2
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Retries",
+                "position": "1:7-1:5",
+                "signed": false,
+                "enum": "retry_count"
+              },
+              {
+                "name": "Drive Type",
+                "position": "1:4-1:3",
+                "signed": false,
+                "enum": "drive_type_hbo"
+              },
+              {
+                "name": "Safe State",
+                "position": "1:2-1:1",
+                "signed": false,
+                "enum": "safe_state"
+              },
+              {
+                "name": "Active State",
+                "position": "1:0",
+                "signed": false,
+                "enum": "active_state"
+              },
+              {
+                "name": "Retry Delay",
+                "position": "2:7-2:0",
+                "signed": false,
+                "units": "seconds",
+                "conversion": "y = x",
+                "range": [0, 240]
+              }
+            ]
+          },
+          "SPI": {
+            "mux_type": 3,
+            "mux_indices": [0, 1, 2, 3],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 3
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Pullup",
+                "position": "1:1",
+                "signed": false,
+                "description": "0=disable, 1=enable"
+              },
+              {
+                "name": "Edge Select",
+                "position": "1:0",
+                "signed": false,
+                "enum": "spi_edge"
+              },
+              {
+                "name": "Upper Threshold",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 5000
+              },
+              {
+                "name": "Glitch Filter",
+                "position": "6:7-7:0",
+                "signed": false,
+                "units": "us",
+                "conversion": "y = x",
+                "range": [0, 500]
+              }
+            ]
+          },
+          "AVI": {
+            "mux_type": 4,
+            "mux_indices": [0, 1, 2, 3],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 4
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Pullup",
+                "position": "1:2-1:0",
+                "signed": false,
+                "enum": "avi_pullup",
+                "notes": "240ohm only available on AVI1"
+              },
+              {
+                "name": "Switch On Threshold",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 5000
+              },
+              {
+                "name": "Switch Off Threshold",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 5000
+              }
+            ]
+          }
+        }
+      },
+      "system_config": {
+        "id_offset": 2,
+        "rate_hz": 2,
+        "direction": "RX",
+        "description": "System configuration flags",
+        "channels": [
+          {
+            "name": "ECR Status",
+            "position": "0:4",
+            "signed": false,
+            "description": "Emergency Circuit Reset - keeps PD16 on even if ignition removed"
+          },
+          {
+            "name": "CAN Power",
+            "position": "0:3",
+            "signed": false,
+            "description": "Not implemented / reserved"
+          },
+          {
+            "name": "Reserved",
+            "position": "0:2",
+            "signed": false
+          },
+          {
+            "name": "CAN Termination Bus 1",
+            "position": "0:1",
+            "signed": false,
+            "description": "0=disabled, 1=enabled"
+          },
+          {
+            "name": "Reserved",
+            "position": "0:0",
+            "signed": false
+          }
+        ]
+      }
+    },
+    "pd16_to_ecu": {
+      "input_status": {
+        "id_offset": 3,
+        "rate_hz": 20,
+        "direction": "TX",
+        "description": "High priority input state, voltage, duty cycle, frequency",
+        "variants": {
+          "SPI": {
+            "mux_type": 3,
+            "mux_indices": [0, 1, 2, 3],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 3
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "State",
+                "position": "1:0",
+                "signed": false,
+                "description": "0=OFF, 1=ON"
+              },
+              {
+                "name": "Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 5000
+              },
+              {
+                "name": "Duty Cycle",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "%",
+                "conversion": "y = x / 10",
+                "raw_max": 1000
+              },
+              {
+                "name": "Frequency",
+                "position": "6:7-7:0",
+                "signed": false,
+                "units": "Hz",
+                "conversion": "y = x",
+                "raw_max": 1000
+              }
+            ]
+          },
+          "AVI": {
+            "mux_type": 4,
+            "mux_indices": [0, 1, 2, 3],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 4
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "State",
+                "position": "1:0",
+                "signed": false,
+                "description": "0=OFF, 1=ON"
+              },
+              {
+                "name": "Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 5000
+              }
+            ]
+          }
+        }
+      },
+      "output_status": {
+        "id_offset": 4,
+        "rate_hz": 5,
+        "direction": "TX",
+        "description": "Output voltage, current, load, pin state",
+        "variants": {
+          "25A": {
+            "mux_type": 0,
+            "mux_indices": [0, 1, 2, 3],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 0
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Load",
+                "position": "1:7-1:0",
+                "signed": false,
+                "units": "%",
+                "conversion": "y = x",
+                "raw_max": 100
+              },
+              {
+                "name": "Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 12000
+              },
+              {
+                "name": "Low Side Current",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "A",
+                "conversion": "y = x / 1000",
+                "raw_max": 50000
+              },
+              {
+                "name": "High Side Current",
+                "position": "6:7-6:0",
+                "signed": false,
+                "units": "A",
+                "conversion": "y = x / 1000",
+                "raw_max": 50000
+              },
+              {
+                "name": "Retry Count",
+                "position": "7:7-7:4",
+                "signed": false,
+                "range": [0, 30]
+              },
+              {
+                "name": "Pin State",
+                "position": "7:3-7:0",
+                "signed": false,
+                "enum": "pin_state"
+              }
+            ]
+          },
+          "8A": {
+            "mux_type": 1,
+            "mux_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 1
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Retry Count",
+                "position": "1:7-1:3",
+                "signed": false,
+                "enum": "retry_count"
+              },
+              {
+                "name": "Pin State",
+                "position": "1:2-1:0",
+                "signed": false,
+                "enum": "pin_state"
+              },
+              {
+                "name": "Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 12000
+              },
+              {
+                "name": "Current",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "A",
+                "conversion": "y = x / 1000",
+                "raw_max": 1000
+              },
+              {
+                "name": "Load",
+                "position": "6:7-6:0",
+                "signed": false,
+                "units": "%",
+                "conversion": "y = x",
+                "raw_max": 100
+              }
+            ]
+          },
+          "HALF_BRIDGE": {
+            "mux_type": 2,
+            "mux_indices": [0, 1],
+            "channels": [
+              {
+                "name": "Mux ID (IO Type)",
+                "position": "0:7-0:5",
+                "signed": false,
+                "value": 2
+              },
+              {
+                "name": "Mux ID (IO Index)",
+                "position": "0:3-0:0",
+                "signed": false
+              },
+              {
+                "name": "Retry Count",
+                "position": "1:7-1:3",
+                "signed": false,
+                "range": [0, 31],
+                "notes": "31 indicates > 30"
+              },
+              {
+                "name": "Pin State",
+                "position": "1:2-1:0",
+                "signed": false,
+                "enum": "pin_state"
+              },
+              {
+                "name": "Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 12000
+              },
+              {
+                "name": "Low Side Current",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "A"
+              },
+              {
+                "name": "High Side Current",
+                "position": "6:7-7:0",
+                "signed": false,
+                "units": "A"
+              }
+            ]
+          }
+        }
+      },
+      "device_status": {
+        "id_offset": 5,
+        "rate_hz": 2,
+        "direction": "TX",
+        "description": "Firmware version and device status",
+        "channels": [
+          {
+            "name": "Status",
+            "position": "0:7-0:4",
+            "signed": false,
+            "enum": "device_status"
+          },
+          {
+            "name": "USB Connected",
+            "position": "0:3",
+            "signed": false
+          },
+          {
+            "name": "ID Conflict",
+            "position": "0:1",
+            "signed": false
+          },
+          {
+            "name": "Boot Version",
+            "position": "1:7-1:3",
+            "signed": false
+          },
+          {
+            "name": "FW Major Version",
+            "position": "1:1-1:0",
+            "signed": false
+          },
+          {
+            "name": "FW Minor Version",
+            "position": "2:7-2:0",
+            "signed": false
+          },
+          {
+            "name": "FW Bugfix Version",
+            "position": "3:7-3:0",
+            "signed": false
+          },
+          {
+            "name": "FW Release Version",
+            "position": "4:7-4:0",
+            "signed": false
+          }
+        ]
+      },
+      "diagnostics": {
+        "id_offset": 6,
+        "rate_hz": 2,
+        "direction": "TX",
+        "description": "Diagnostic information - multiplexed by Mux ID in byte 0",
+        "variants": {
+          "mux_0_voltages": {
+            "mux_id": 0,
+            "channels": [
+              {
+                "name": "Mux ID",
+                "position": "0:7-0:0",
+                "signed": false,
+                "value": 0
+              },
+              {
+                "name": "Ignition Input Switch Status",
+                "position": "1:0",
+                "signed": false,
+                "description": "0=off, 1=on"
+              },
+              {
+                "name": "Main Rail Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 12000
+              },
+              {
+                "name": "Protected Rail Voltage",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 12000
+              },
+              {
+                "name": "ECR Plug Voltage",
+                "position": "6:7-7:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "raw_max": 12000
+              }
+            ]
+          },
+          "mux_1_internal_voltages": {
+            "mux_id": 1,
+            "channels": [
+              {
+                "name": "Mux ID",
+                "position": "0:7-0:0",
+                "signed": false,
+                "value": 1
+              },
+              {
+                "name": "Boost Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "notes": "Expected value ~10V above battery voltage"
+              },
+              {
+                "name": "SEPIC Voltage",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "notes": "Internal rail, expected value 12V"
+              },
+              {
+                "name": "ECR Plug Current",
+                "position": "6:7-7:0",
+                "signed": false,
+                "units": "mA",
+                "conversion": "y = x"
+              }
+            ]
+          },
+          "mux_2_more_voltages": {
+            "mux_id": 2,
+            "channels": [
+              {
+                "name": "Mux ID",
+                "position": "0:7-0:0",
+                "signed": false,
+                "value": 2
+              },
+              {
+                "name": "UVLO Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000",
+                "notes": "Internal rail, expected value 3.3V"
+              },
+              {
+                "name": "Sensor Ground Voltage",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000"
+              },
+              {
+                "name": "VDD Voltage",
+                "position": "6:7-7:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000"
+              }
+            ]
+          },
+          "mux_3_temperatures": {
+            "mux_id": 3,
+            "channels": [
+              {
+                "name": "Mux ID",
+                "position": "0:7-0:0",
+                "signed": false,
+                "value": 3
+              },
+              {
+                "name": "Main Rail Temperature",
+                "position": "1:7-1:0",
+                "signed": false,
+                "units": "°C",
+                "conversion": "y = x",
+                "notes": "Temperatures below zero read as zero"
+              },
+              {
+                "name": "Thermistor 1 Temperature",
+                "position": "2:7-2:0",
+                "signed": false,
+                "units": "°C",
+                "conversion": "y = x"
+              },
+              {
+                "name": "Thermistor 2 Temperature",
+                "position": "3:7-3:0",
+                "signed": false,
+                "units": "°C",
+                "conversion": "y = x"
+              },
+              {
+                "name": "Thermistor 3 Temperature",
+                "position": "4:7-4:0",
+                "signed": false,
+                "units": "°C",
+                "conversion": "y = x"
+              },
+              {
+                "name": "CPU Temperature",
+                "position": "5:7-5:0",
+                "signed": false,
+                "units": "°C",
+                "conversion": "y = x"
+              },
+              {
+                "name": "Total Current Draw",
+                "position": "6:7-7:0",
+                "signed": false,
+                "units": "A",
+                "conversion": "y = x / 10",
+                "raw_max": 1000
+              }
+            ]
+          },
+          "mux_4_battery_and_temps": {
+            "mux_id": 4,
+            "channels": [
+              {
+                "name": "Mux ID",
+                "position": "0:7-0:0",
+                "signed": false,
+                "value": 4
+              },
+              {
+                "name": "Battery Voltage",
+                "position": "2:7-3:0",
+                "signed": false,
+                "units": "V",
+                "conversion": "y = x / 1000"
+              },
+              {
+                "name": "PD16 On Time",
+                "position": "4:7-5:0",
+                "signed": false,
+                "units": "seconds",
+                "conversion": "y = x"
+              },
+              {
+                "name": "HCO25 3&4 Temperature Status",
+                "position": "6:7-6:6",
+                "signed": false,
+                "enum": "temperature_status"
+              },
+              {
+                "name": "HCO25 1&2 Temperature Status",
+                "position": "6:5-6:4",
+                "signed": false,
+                "enum": "temperature_status"
+              },
+              {
+                "name": "TVS Temperature Status",
+                "position": "6:3-6:2",
+                "signed": false,
+                "enum": "temperature_status"
+              },
+              {
+                "name": "Main Rail Temperature Status",
+                "position": "6:1-6:0",
+                "signed": false,
+                "enum": "temperature_status"
+              }
+            ]
+          },
+          "mux_5_serial_number": {
+            "mux_id": 5,
+            "channels": [
+              {
+                "name": "Mux ID",
+                "position": "0:7-0:0",
+                "signed": false,
+                "value": 5
+              },
+              {
+                "name": "Serial Number Digits 1-2",
+                "position": "2:7-2:0",
+                "signed": false
+              },
+              {
+                "name": "Serial Number Digits 3-4",
+                "position": "3:7-3:0",
+                "signed": false
+              },
+              {
+                "name": "Serial Number Digits 5-6",
+                "position": "4:7-4:0",
+                "signed": false
+              },
+              {
+                "name": "Serial Number Digits 7-8",
+                "position": "5:7-5:0",
+                "signed": false
+              },
+              {
+                "name": "Serial Number Digits 9-10",
+                "position": "6:7-6:0",
+                "signed": false
+              },
+              {
+                "name": "Serial Number Digits 11-12",
+                "position": "7:7-7:0",
+                "signed": false
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "commands": {
+    "id_swap_request": {
+      "description": "Request to change PD16 device ID",
+      "can_ids": {
+        "PD16_A": "0x6F7",
+        "PD16_B": "0x6F9",
+        "PD16_C": "0x6FB",
+        "PD16_D": "0x6FD"
+      },
+      "payload": {
+        "byte_0": "0x04",
+        "byte_1": "0x2E",
+        "byte_2": "0x43",
+        "byte_3": "0x2B",
+        "byte_4": "new_box_id (0-3)",
+        "byte_5": "0x55",
+        "byte_6": "0x55",
+        "byte_7": "0x55"
+      }
+    },
+    "id_swap_response": {
+      "description": "PD16 acknowledgement of ID swap",
+      "can_ids": {
+        "PD16_A": "0x6F8",
+        "PD16_B": "0x6FA",
+        "PD16_C": "0x6FC",
+        "PD16_D": "0x6FE"
+      },
+      "payload": {
+        "byte_0": "0x01",
+        "byte_1": "0x6E",
+        "byte_2": "0xAA",
+        "byte_3": "0xAA",
+        "byte_4": "0xAA",
+        "byte_5": "0xAA",
+        "byte_6": "0xAA",
+        "byte_7": "0xAA"
+      }
+    },
+    "soft_reset_request": {
+      "description": "Request PD16 reset",
+      "can_ids": {
+        "PD16_A": "0x6F7",
+        "PD16_B": "0x6F9",
+        "PD16_C": "0x6FB",
+        "PD16_D": "0x6FD"
+      },
+      "payload": {
+        "byte_0": "0x02",
+        "byte_1": "0x11",
+        "byte_2": "reset_type (0x01=hard, 0x02=key_on_off, 0x03=soft)",
+        "byte_3": "0x55",
+        "byte_4": "0x55",
+        "byte_5": "0x55",
+        "byte_6": "0x55",
+        "byte_7": "0x55"
+      }
+    },
+    "reset_response": {
+      "description": "PD16 acknowledgement of reset",
+      "can_ids": {
+        "PD16_A": "0x6F8",
+        "PD16_B": "0x6FA",
+        "PD16_C": "0x6FC",
+        "PD16_D": "0x6FE"
+      },
+      "payload": {
+        "byte_0": "0x03",
+        "byte_1": "0x51",
+        "byte_2": "0x03",
+        "byte_3": "0x00",
+        "byte_4": "0xAA",
+        "byte_5": "0xAA",
+        "byte_6": "0xAA",
+        "byte_7": "0xAA"
+      }
+    }
+  },
+  "timing": {
+    "summary": {
+      "total_packets_per_second": 629,
+      "notes": "Calculated based on all message types and their rates"
+    },
+    "message_rates": [
+      {
+        "id_offset": 0,
+        "description": "Output duty cycle/frequency",
+        "payload_count": 16,
+        "desired_rate_ms": 50,
+        "cycle_time_ms": 3,
+        "packets_per_second": 333
+      },
+      {
+        "id_offset": 1,
+        "description": "Output/input settings",
+        "payload_count": 24,
+        "desired_rate_ms": 500,
+        "cycle_time_ms": 20,
+        "packets_per_second": 50
+      },
+      {
+        "id_offset": 2,
+        "description": "System config",
+        "payload_count": 1,
+        "desired_rate_ms": 500,
+        "cycle_time_ms": 500,
+        "packets_per_second": 2
+      },
+      {
+        "id_offset": 3,
+        "description": "Input state/voltage/duty/freq",
+        "payload_count": 8,
+        "desired_rate_ms": 50,
+        "cycle_time_ms": 6.25,
+        "packets_per_second": 160
+      },
+      {
+        "id_offset": 4,
+        "description": "Output voltage/retry/pin state",
+        "payload_count": 16,
+        "desired_rate_ms": 200,
+        "cycle_time_ms": 12.5,
+        "packets_per_second": 80
+      },
+      {
+        "id_offset": 5,
+        "description": "Status info",
+        "payload_count": 1,
+        "desired_rate_ms": 500,
+        "cycle_time_ms": 500,
+        "packets_per_second": 2
+      },
+      {
+        "id_offset": 6,
+        "description": "Serial/battery/diagnostics",
+        "payload_count": 1,
+        "desired_rate_ms": 500,
+        "cycle_time_ms": 500,
+        "packets_per_second": 2
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            clang clang-format clang-tidy \
+            qt6-base-dev qt6-declarative-dev \
+            qt6-multimedia-dev qt6-serialbus-dev \
+            qml6-module-qtquick qml6-module-qtquick-controls
+
+      - name: Configure
+        run: cmake --preset ci
+
+      - name: Build
+        run: cmake --build build/ci
+
+      - name: Test
+        run: ctest --preset ci
+
+      - name: Format Check
+        run: cmake --build build/ci --target format-check
+
+  lint:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build clang clang-tidy \
+            qt6-base-dev qt6-declarative-dev \
+            qt6-multimedia-dev qt6-serialbus-dev
+
+      - name: Configure with clang-tidy
+        run: cmake --preset ci
+
+      - name: Run clang-tidy
+        run: |
+          cmake --build build/ci 2>&1 | tee build.log
+          if grep -q "warning:" build.log; then
+            echo "clang-tidy warnings found"
+            exit 1
+          fi
