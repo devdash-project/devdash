@@ -59,3 +59,44 @@ jobs:
             echo "clang-tidy warnings found"
             exit 1
           fi
+
+  coverage:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build gcovr \
+            qt6-base-dev qt6-declarative-dev \
+            qt6-multimedia-dev qt6-serialbus-dev \
+            qml6-module-qtquick qml6-module-qtquick-controls
+
+      - name: Configure with coverage
+        run: cmake --preset dev -DCMAKE_CXX_FLAGS="--coverage" -DCMAKE_C_FLAGS="--coverage"
+
+      - name: Build
+        run: cmake --build build/dev
+
+      - name: Run tests
+        run: ctest --test-dir build/dev --output-on-failure
+
+      - name: Generate coverage report
+        run: |
+          gcovr --root . \
+            --filter src/ \
+            --exclude tests/ \
+            --exclude build/ \
+            --xml --xml-pretty \
+            --output coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}

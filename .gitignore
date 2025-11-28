@@ -42,3 +42,6 @@ Thumbs.db
 *.gcda
 *.gcov
 coverage/
+coverage.xml
+*.profdata
+*.profraw

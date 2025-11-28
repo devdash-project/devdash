@@ -1,5 +1,11 @@
 # /dev/dash
 
+[![CI](https://github.com/yourorg/devdash/workflows/CI/badge.svg)](https://github.com/yourorg/devdash/actions)
+[![codecov](https://codecov.io/gh/yourorg/devdash/branch/main/graph/badge.svg)](https://codecov.io/gh/yourorg/devdash)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/std/the-standard)
+[![Qt](https://img.shields.io/badge/Qt-6.5%2B-green.svg)](https://www.qt.io/)
+
 A modular automotive dashboard framework built with Qt 6/QML and C++20. Targets NVIDIA Jetson but runs anywhere with Qt support.
 
 ## Features
