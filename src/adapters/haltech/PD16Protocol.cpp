@@ -15,13 +15,13 @@ constexpr uint32_t BASE_ID_C = 0x6E0;
 constexpr uint32_t BASE_ID_D = 0x6E8;
 
 // Frame offsets from base ID
-constexpr int OFFSET_OUTPUT_CONTROL = 0;    // RX: Output duty cycle/freq (high priority)
-constexpr int OFFSET_OUTPUT_CONFIG = 1;     // RX: Output/input configuration (low priority)
-constexpr int OFFSET_SYSTEM_CONFIG = 2;     // RX: System config flags
+// constexpr int OFFSET_OUTPUT_CONTROL = 0;    // RX: Output duty cycle/freq (high priority) - Reserved for future use
+// constexpr int OFFSET_OUTPUT_CONFIG = 1;     // RX: Output/input configuration (low priority) - Reserved for future use
+// constexpr int OFFSET_SYSTEM_CONFIG = 2;     // RX: System config flags - Reserved for future use
 constexpr int OFFSET_INPUT_STATUS = 3;      // TX: Input state/voltage/freq (high priority)
 constexpr int OFFSET_OUTPUT_STATUS = 4;     // TX: Output voltage/current/state
 constexpr int OFFSET_DEVICE_STATUS = 5;     // TX: Firmware version/status
-constexpr int OFFSET_DIAGNOSTICS = 6;       // TX: Diagnostics/serial/temps
+// constexpr int OFFSET_DIAGNOSTICS = 6;       // TX: Diagnostics/serial/temps - Reserved for future use
 } // namespace
 
 void PD16Protocol::setDeviceId(DeviceId id) {
