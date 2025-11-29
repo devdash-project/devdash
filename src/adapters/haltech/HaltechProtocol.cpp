@@ -13,7 +13,7 @@ namespace devdash {
 namespace {
 // Haltech CAN frame IDs (standard base addresses) - used for hardcoded fallback
 constexpr uint32_t FRAME_ID_RPM_TPS = 0x360;
-constexpr uint32_t FRAME_ID_FUEL_IGN = 0x361;
+// constexpr uint32_t FRAME_ID_FUEL_IGN = 0x361;  // Reserved for future use
 constexpr uint32_t FRAME_ID_TEMPS = 0x362;
 constexpr uint32_t FRAME_ID_PRESSURES = 0x363;
 constexpr uint32_t FRAME_ID_SPEED_GEAR = 0x370;
