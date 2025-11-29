@@ -326,24 +326,67 @@ if (handler != m_handlers.end()) {
 }
 ```
 
-### Switch on Type (OCP Violation)
+### Switch Statements (Banned - Use Lookup Tables)
+
+**Switch statements are not allowed.** Use lookup tables instead. This is idiomatic modern C++ and follows the Open/Closed Principle.
 
 ```cpp
-// ❌ Adding new types requires modifying this code
-switch (event.type) {
-    case EventType::CanFrame: processCanFrame(event); break;
-    case EventType::GpsUpdate: processGps(event); break;
-    // Must modify for each new event type!
+// ❌ BANNED - switch statements violate OCP
+switch (frameId) {
+    case 0x360: return decodeRpmTps(payload);
+    case 0x362: return decodeTemps(payload);
+    // Must modify for each new frame type!
 }
 
-// ✅ Use polymorphism
-class IEventHandler {
-public:
-    virtual void handle(const Event& event) = 0;
+// ❌ BANNED - if/else chains on type are equivalent to switch
+if (ioType == IOType::Output25A) { ... }
+else if (ioType == IOType::Output8A) { ... }
+
+// ✅ REQUIRED - Lookup table pattern
+using FrameDecoder = std::function<std::vector<ChannelValue>(const QByteArray&)>;
+QHash<uint32_t, FrameDecoder> m_decoders;
+
+// Built dynamically from JSON at load time
+void buildDecoderTable() {
+    for (const auto& [frameId, frameDef] : m_frameDefinitions) {
+        m_decoders[frameId] = createDecoderFor(frameDef);
+    }
+}
+
+// Single O(1) lookup at decode time
+auto it = m_decoders.find(frameId);
+if (it != m_decoders.end()) {
+    return it.value()(payload);
+}
+```
+
+**Why lookup tables:**
+- Open/Closed: Add new types via data, not code changes
+- Testable: Each handler is a separate unit-testable function
+- Readable: Table initialization shows all mappings in one place
+- Standard: Used throughout Qt, STL, game engines, protocol parsers
+
+**For enum-to-value mappings, use `std::array`:**
+
+```cpp
+// ❌ BANNED
+QString getIOTypeName(IOType type) {
+    switch (type) {
+        case IOType::Output25A: return "25A";
+        case IOType::Output8A: return "8A";
+        // ...
+    }
+}
+
+// ✅ REQUIRED - static array indexed by enum
+const std::array<QString, 5> IO_TYPE_NAMES = {
+    "25A", "8A", "HBO", "SPI", "AVI"
 };
 
-// Each event type has its own handler - no switch needed
-m_handlers[event.type]->handle(event);
+QString getIOTypeName(IOType type) {
+    auto index = static_cast<size_t>(type);
+    return (index < IO_TYPE_NAMES.size()) ? IO_TYPE_NAMES[index] : "Unknown";
+}
 ```
 
 ### Magic Strings
