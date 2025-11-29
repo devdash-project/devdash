@@ -1,0 +1,71 @@
+{
+    "$schema": "../protocols/profile-schema.json",
+    "name": "Haltech via vcan0 (Development)",
+    "description": "Use with haltech-mock for realistic ECU and PD16 testing. See: ./scripts/list-scenarios",
+    "adapter": "haltech",
+    "adapterConfig": {
+        "interface": "vcan0",
+        "protocolFile": "../protocols/haltech/haltech-can-protocol-v2.35.json"
+    },
+    "display": {
+        "cluster": {
+            "enabled": true,
+            "screen": 0,
+            "layout": "default"
+        },
+        "headunit": {
+            "enabled": true,
+            "screen": 1,
+            "layout": "default"
+        }
+    },
+    "units": {
+        "temperature": "celsius",
+        "pressure": "kpa",
+        "speed": "kmh"
+    },
+    "warnings": {
+        "coolantTemperature": {
+            "warning": 95,
+            "critical": 105
+        },
+        "oilPressure": {
+            "warning": 150,
+            "critical": 100
+        },
+        "oilTemperature": {
+            "warning": 120,
+            "critical": 140
+        },
+        "batteryVoltage": {
+            "warning": 12.5,
+            "critical": 12.0
+        }
+    },
+    "channelMapping": {
+        "rpm": "RPM",
+        "throttlePosition": "Throttle Position",
+        "coolantTemperature": "Engine Coolant Temperature",
+        "oilTemperature": "Engine Oil Temperature",
+        "oilPressure": "Oil Pressure",
+        "fuelPressure": "Fuel Pressure",
+        "manifoldPressure": "Manifold Pressure",
+        "intakeAirTemperature": "Intake Air Temperature",
+        "batteryVoltage": "Battery Voltage",
+        "vehicleSpeed": "Vehicle Speed",
+        "gear": "Gear Position",
+        "widebandLambda": "Wideband Lambda 1"
+    },
+    "pd16ChannelMapping": {
+        "fan1": "PD16A_output_25a_0",
+        "fan2": "PD16A_output_25a_1",
+        "fuelPump": "PD16A_output_25a_2",
+        "waterPump": "PD16A_output_25a_3",
+        "headlights": "PD16A_output_8a_0",
+        "taillights": "PD16A_output_8a_1",
+        "turnSignalLeft": "PD16A_output_8a_2",
+        "turnSignalRight": "PD16A_output_8a_3",
+        "brakeLight": "PD16A_output_8a_4",
+        "horn": "PD16A_output_8a_5"
+    }
+}

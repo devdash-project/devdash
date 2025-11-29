@@ -9,8 +9,6 @@ add_library(devdash_adapters STATIC
     haltech/HaltechProtocol.h
     haltech/PD16Protocol.cpp
     haltech/PD16Protocol.h
-    simulator/SimulatorAdapter.cpp
-    simulator/SimulatorAdapter.h
 )
 
 target_include_directories(devdash_adapters PUBLIC

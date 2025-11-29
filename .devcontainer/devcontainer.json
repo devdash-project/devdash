@@ -6,6 +6,9 @@
     "runArgs": [
         "--privileged",
         "--cap-add=NET_ADMIN",
+        "--cap-add=SYS_PTRACE",
+        "--security-opt=seccomp=unconfined",
+        "--network=host",
         "--hostname=devdash"
     ],
     "mounts": [

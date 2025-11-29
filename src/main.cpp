@@ -9,17 +9,17 @@
  * ## Usage
  *
  * @code
- * # Run with simulator (default)
- * ./devdash
+ * # Run with haltech-mock (recommended for testing)
+ * ./scripts/run-with-mock idle
  *
  * # Run with vehicle profile
- * ./devdash --profile profiles/haltech-nexus.json
+ * ./devdash --profile profiles/haltech-vcan.json
  *
  * # Run cluster only on second monitor
- * ./devdash --cluster-only --cluster-screen 1
+ * ./devdash --profile profiles/haltech-vcan.json --cluster-only --cluster-screen 1
  *
  * # Run both displays on specific screens
- * ./devdash --cluster-screen 0 --headunit-screen 1
+ * ./devdash --profile profiles/haltech-vcan.json --cluster-screen 0 --headunit-screen 1
  * @endcode
  */
 
@@ -65,9 +65,6 @@ constexpr int EXIT_INVALID_ARGS = 2;
 /// Default screen index (-1 = auto-select)
 constexpr const char* DEFAULT_SCREEN_INDEX = "-1";
 
-/// Default adapter type when no profile specified
-constexpr const char* DEFAULT_ADAPTER_TYPE = "simulator";
-
 //=============================================================================
 // Command Line Setup
 //=============================================================================
@@ -112,22 +109,28 @@ bool validateArguments(const QCommandLineParser& parser) {
 //=============================================================================
 
 /**
- * @brief Create protocol adapter from profile or default to simulator.
+ * @brief Create protocol adapter from profile.
  * @param parser The parsed command line
  * @return Adapter instance, or nullptr on failure
  */
 std::unique_ptr<devdash::IProtocolAdapter> createAdapter(const QCommandLineParser& parser) {
-    if (parser.isSet("profile")) {
-        auto adapter = devdash::ProtocolAdapterFactory::createFromProfile(parser.value("profile"));
-
-        if (!adapter) {
-            qCritical() << "Failed to create adapter from profile:" << parser.value("profile");
-        }
-        return adapter;
+    if (!parser.isSet("profile")) {
+        qCritical() << "Error: --profile is required";
+        qCritical() << "";
+        qCritical() << "Usage:";
+        qCritical() << "  ./devdash --profile profiles/haltech-vcan.json";
+        qCritical() << "";
+        qCritical() << "For testing with haltech-mock, use:";
+        qCritical() << "  ./scripts/run-with-mock idle";
+        qCritical() << "";
+        return nullptr;
     }
 
-    qInfo() << "No profile specified, using simulator adapter";
-    return devdash::ProtocolAdapterFactory::create(DEFAULT_ADAPTER_TYPE, QJsonObject());
+    auto adapter = devdash::ProtocolAdapterFactory::createFromProfile(parser.value("profile"));
+    if (!adapter) {
+        qCritical() << "Failed to create adapter from profile:" << parser.value("profile");
+    }
+    return adapter;
 }
 
 //=============================================================================

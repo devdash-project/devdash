@@ -6,7 +6,6 @@
 #include "ProtocolAdapterFactory.h"
 
 #include "haltech/HaltechAdapter.h"
-#include "simulator/SimulatorAdapter.h"
 
 #include <QDebug>
 #include <QFile>
@@ -29,7 +28,6 @@ constexpr const char* CONFIG_KEY_ADAPTER_CONFIG = "adapterConfig";
 //=============================================================================
 
 constexpr const char* ADAPTER_TYPE_HALTECH = "haltech";
-constexpr const char* ADAPTER_TYPE_SIMULATOR = "simulator";
 constexpr const char* ADAPTER_TYPE_OBD2 = "obd2";
 
 //=============================================================================
@@ -55,9 +53,7 @@ const QHash<QString, AdapterCreator>& getAdapterCreators() {
     static const QHash<QString, AdapterCreator> ADAPTER_CREATORS = {
         {ADAPTER_TYPE_HALTECH,
          [](const QJsonObject& config) { return std::make_unique<HaltechAdapter>(config); }},
-        {ADAPTER_TYPE_SIMULATOR,
-         [](const QJsonObject& config) { return std::make_unique<SimulatorAdapter>(config); }},
-        // TODO: Add OBD2 adapter
+        // TODO: Add OBD2 adapter when needed
         // {
         //     ADAPTER_TYPE_OBD2,
         //     [](const QJsonObject& config) {

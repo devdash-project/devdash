@@ -1,0 +1,74 @@
+#!/bin/bash
+# Run devdash with haltech-mock ECU simulator
+#
+# Usage: ./scripts/run-with-mock [scenario] [extra_args...]
+#
+# Examples:
+#   ./scripts/run-with-mock idle
+#   ./scripts/run-with-mock track --loop
+#   ./scripts/run-with-mock overheat --duration 120
+#
+# Available scenarios:
+#   idle, accel, warmup, track, track-session, overheat, low-oil, redline, battery
+
+set -e
+
+SCENARIO="${1:-idle}"
+shift || true
+EXTRA_ARGS="$@"
+
+INTERFACE="vcan0"
+MOCK="/opt/haltech-venv/bin/haltech-mock"
+PROFILE="profiles/haltech-vcan.json"
+
+# Check if haltech-mock is available
+if [ ! -x "$MOCK" ]; then
+    echo "Error: haltech-mock not found at $MOCK"
+    echo "Please install haltech-mock: pip install haltech-mock"
+    exit 1
+fi
+
+# Verify vcan0 exists
+if ! ip link show "$INTERFACE" &>/dev/null; then
+    echo "Error: $INTERFACE not found"
+    echo ""
+    echo "Please create vcan0 first:"
+    echo "  ./scripts/setup-vcan.sh"
+    echo ""
+    echo "If running in a dev container, create vcan0 on the host:"
+    echo "  sudo modprobe vcan"
+    echo "  sudo ip link add dev vcan0 type vcan"
+    echo "  sudo ip link set vcan0 up"
+    exit 1
+fi
+
+# Check if build exists
+if [ ! -f "build/dev/devdash" ]; then
+    echo "Error: devdash not built"
+    echo "Run: ./scripts/build"
+    exit 1
+fi
+
+echo "Starting haltech-mock with scenario: $SCENARIO"
+echo "Interface: $INTERFACE"
+echo "Extra args: $EXTRA_ARGS"
+echo ""
+
+# Start haltech-mock in background
+$MOCK scenario "$SCENARIO" --interface "$INTERFACE" $EXTRA_ARGS &
+MOCK_PID=$!
+
+# Trap to cleanup on exit
+trap "echo 'Stopping haltech-mock...'; kill $MOCK_PID 2>/dev/null; wait $MOCK_PID 2>/dev/null" EXIT INT TERM
+
+# Wait for mock to start transmitting
+sleep 0.5
+
+echo "haltech-mock started (PID: $MOCK_PID)"
+echo "Starting devdash..."
+echo ""
+
+# Run devdash
+./build/dev/devdash --profile "$PROFILE"
+
+# Cleanup happens via trap

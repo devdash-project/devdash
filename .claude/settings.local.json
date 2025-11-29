@@ -23,7 +23,21 @@
       "Bash(sudo act:*)",
       "Bash(tee:*)",
       "Bash(mkdir:*)",
-      "Bash(sudo ./scripts/test-ci-local:*)"
+      "Bash(sudo ./scripts/test-ci-local:*)",
+      "Bash(code --list-extensions)",
+      "Bash(pip show:*)",
+      "Bash(/opt/haltech-venv/bin/pip show:*)",
+      "Bash(./scripts/setup-vcan.sh:*)",
+      "Bash(ip link:*)",
+      "Bash(rm:*)",
+      "Bash(ln:*)",
+      "Bash(./scripts/list-scenarios:*)",
+      "Bash(test:*)",
+      "Bash(find:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(lldb:*)",
+      "Bash(~/.vscode-server/extensions/vadimcn.vscode-lldb-1.11.8/lldb/bin/lldb:*)"
     ],
     "deny": [],
     "ask": []

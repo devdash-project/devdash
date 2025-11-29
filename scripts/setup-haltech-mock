@@ -1,0 +1,141 @@
+#!/bin/bash
+# Quick setup script for haltech-mock integration
+# Checks vcan0 availability and provides setup instructions
+
+set -e
+
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════════════"
+echo "  haltech-mock Integration Setup"
+echo "═══════════════════════════════════════════════════════════════════════"
+echo ""
+
+# Check if haltech-mock is installed
+if [ ! -x "/opt/haltech-venv/bin/haltech-mock" ]; then
+    echo -e "${RED}✗ haltech-mock not found${NC}"
+    echo ""
+    echo "Please install haltech-mock:"
+    echo "  pip install haltech-mock"
+    echo ""
+    exit 1
+fi
+
+echo -e "${GREEN}✓ haltech-mock installed${NC} (v$(/opt/haltech-venv/bin/haltech-mock --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo 'unknown'))"
+
+# Check if vcan0 exists
+if ip link show vcan0 &>/dev/null; then
+    echo -e "${GREEN}✓ vcan0 interface available${NC}"
+
+    # Check if it's UP
+    if ip link show vcan0 | grep -q "UP"; then
+        echo -e "${GREEN}✓ vcan0 is UP and ready${NC}"
+        echo ""
+        echo "═══════════════════════════════════════════════════════════════════════"
+        echo -e "  ${BOLD}Setup Complete!${NC}"
+        echo "═══════════════════════════════════════════════════════════════════════"
+        echo ""
+        echo "You can now run devdash with haltech-mock:"
+        echo ""
+        echo -e "  ${BOLD}./scripts/run-with-mock idle${NC}           # Basic idle scenario"
+        echo -e "  ${BOLD}./scripts/run-with-mock track --loop${NC}   # Track laps (continuous)"
+        echo -e "  ${BOLD}./scripts/run-with-mock overheat${NC}       # Test warning lights"
+        echo -e "  ${BOLD}./scripts/run-with-pd16 lights${NC}         # Test PD16 power distribution"
+        echo ""
+        echo "See all scenarios:"
+        echo -e "  ${BOLD}./scripts/list-scenarios${NC}"
+        echo ""
+
+        # Offer to run a quick test
+        echo "═══════════════════════════════════════════════════════════════════════"
+        echo ""
+        read -p "Would you like to run a quick test? (y/n) " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo "Running quick test: haltech-mock idle scenario for 5 seconds..."
+            echo ""
+            /opt/haltech-venv/bin/haltech-mock scenario idle --interface vcan0 --duration 5 &
+            MOCK_PID=$!
+            sleep 1
+
+            echo "Checking CAN traffic on vcan0..."
+            timeout 3 candump vcan0 2>/dev/null | head -10 || {
+                echo ""
+                echo -e "${YELLOW}Note: candump not available or no traffic detected${NC}"
+                echo "      This is normal if can-utils is not installed"
+            }
+
+            # Wait for mock to finish
+            wait $MOCK_PID 2>/dev/null
+
+            echo ""
+            echo -e "${GREEN}✓ Test completed successfully!${NC}"
+            echo ""
+            echo "You're all set! Run the commands above to start testing."
+        fi
+        echo ""
+
+    else
+        echo -e "${YELLOW}! vcan0 exists but is DOWN${NC}"
+        echo ""
+        echo "Bringing up vcan0..."
+        sudo ip link set vcan0 up
+        echo -e "${GREEN}✓ vcan0 is now UP${NC}"
+    fi
+
+else
+    echo -e "${RED}✗ vcan0 interface not found${NC}"
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo -e "  ${BOLD}Setup Required${NC}"
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "vcan0 must be created on your HOST machine (not in the container)."
+    echo ""
+    echo -e "${BOLD}Step 1: Create vcan0 on Host${NC}"
+    echo ""
+    echo "Exit this container and run these commands on your host:"
+    echo ""
+    echo -e "  ${BOLD}sudo modprobe vcan${NC}"
+    echo -e "  ${BOLD}sudo ip link add dev vcan0 type vcan${NC}"
+    echo -e "  ${BOLD}sudo ip link set vcan0 up${NC}"
+    echo ""
+    echo "Verify it worked:"
+    echo -e "  ${BOLD}ip link show vcan0${NC}"
+    echo ""
+    echo -e "${BOLD}Step 2: Rebuild Dev Container${NC}"
+    echo ""
+    echo "The devcontainer.json has been configured with --network=host"
+    echo "to make vcan0 accessible. You need to rebuild:"
+    echo ""
+    echo "In VS Code:"
+    echo "  1. Press Ctrl+Shift+P (or Cmd+Shift+P on Mac)"
+    echo "  2. Type: 'Dev Containers: Rebuild Container'"
+    echo "  3. Press Enter"
+    echo ""
+    echo -e "${BOLD}Step 3: Run This Script Again${NC}"
+    echo ""
+    echo "After rebuilding, run:"
+    echo -e "  ${BOLD}./scripts/setup-haltech-mock${NC}"
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Alternative: Make vcan0 Persistent (Optional)"
+    echo ""
+    echo "To create vcan0 automatically on host boot, add to /etc/rc.local:"
+    echo ""
+    echo "  modprobe vcan"
+    echo "  ip link add dev vcan0 type vcan"
+    echo "  ip link set vcan0 up"
+    echo ""
+    echo "Or create a systemd service (see docs for details)."
+    echo ""
+
+    exit 1
+fi

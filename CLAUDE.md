@@ -16,10 +16,13 @@ cmake --build build/dev
 # Run tests
 ctest --test-dir build/dev --output-on-failure
 
-# Run with mock data
-.devcontainer/setup-vcan.sh
-haltech-mock --interface vcan0 --scenario idle &
-./build/dev/devdash --profile profiles/example-simulator.json
+# Run with realistic mock data (haltech-mock)
+./scripts/setup-haltech-mock               # First-time setup (checks vcan0)
+./scripts/run-with-mock idle               # Idle scenario
+./scripts/run-with-mock track --loop       # Track laps
+./scripts/run-with-mock overheat           # Test warnings
+./scripts/run-with-pd16 lights             # PD16 power distribution
+./scripts/list-scenarios                   # Show all scenarios
 
 # Lint (clang-tidy)
 cmake --build build/dev --target clang-tidy
@@ -292,7 +295,7 @@ std::map<QString, double> decodeFrame(const QString& frameId, const QByteArray& 
  *
  * Channel mappings are configured via JSON profiles, not hardcoded.
  * The broker is protocol-agnostic - it doesn't know or care whether
- * data comes from Haltech, OBD2, or a simulator.
+ * data comes from real hardware or haltech-mock simulation.
  *
  * @note This class is thread-safe. Data updates from adapter threads
  *       are marshalled to the main thread via queued connections.

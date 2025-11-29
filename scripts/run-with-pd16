@@ -1,0 +1,78 @@
+#!/bin/bash
+# Run devdash with haltech-mock PD16 Power Distribution Module simulator
+#
+# Usage: ./scripts/run-with-pd16 [scenario] [--device A|B|C|D]
+#
+# Examples:
+#   ./scripts/run-with-pd16 lights
+#   ./scripts/run-with-pd16 cooling --loop
+#   ./scripts/run-with-pd16 fault --device B
+#
+# Available scenarios:
+#   lights      - Parking, low beam, high beam, turn signals
+#   cooling     - Temperature-based fan control (0% → 30% → 80%)
+#   fuel-pump   - Priming sequence and steady operation
+#   fault       - Cycle through fault conditions (overcurrent, short, open)
+#   startup     - Boot sequence with output self-test
+
+set -e
+
+SCENARIO="${1:-lights}"
+shift || true
+EXTRA_ARGS="$@"
+
+INTERFACE="vcan0"
+MOCK="/opt/haltech-venv/bin/haltech-mock"
+PROFILE="profiles/haltech-vcan.json"
+
+# Check if haltech-mock is available
+if [ ! -x "$MOCK" ]; then
+    echo "Error: haltech-mock not found at $MOCK"
+    echo "Please install haltech-mock: pip install haltech-mock"
+    exit 1
+fi
+
+# Verify vcan0 exists
+if ! ip link show "$INTERFACE" &>/dev/null; then
+    echo "Error: $INTERFACE not found"
+    echo ""
+    echo "Please create vcan0 first:"
+    echo "  ./scripts/setup-vcan.sh"
+    echo ""
+    echo "If running in a dev container, create vcan0 on the host:"
+    echo "  sudo modprobe vcan"
+    echo "  sudo ip link add dev vcan0 type vcan"
+    echo "  sudo ip link set vcan0 up"
+    exit 1
+fi
+
+# Check if build exists
+if [ ! -f "build/dev/devdash" ]; then
+    echo "Error: devdash not built"
+    echo "Run: ./scripts/build"
+    exit 1
+fi
+
+echo "Starting haltech-mock PD16 simulator with scenario: $SCENARIO"
+echo "Interface: $INTERFACE"
+echo "Extra args: $EXTRA_ARGS"
+echo ""
+
+# Start haltech-mock PD16 in background (default to loop mode for testing)
+$MOCK pd16 scenario "$SCENARIO" --interface "$INTERFACE" --loop $EXTRA_ARGS &
+PD16_PID=$!
+
+# Trap to cleanup on exit
+trap "echo 'Stopping haltech-mock PD16...'; kill $PD16_PID 2>/dev/null; wait $PD16_PID 2>/dev/null" EXIT INT TERM
+
+# Wait for mock to start transmitting
+sleep 0.5
+
+echo "haltech-mock PD16 started (PID: $PD16_PID)"
+echo "Starting devdash..."
+echo ""
+
+# Run devdash
+./build/dev/devdash --profile "$PROFILE"
+
+# Cleanup happens via trap

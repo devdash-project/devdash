@@ -3,6 +3,11 @@
 #
 # Usage: ./scripts/setup-vcan.sh [interface_name]
 # Default interface: vcan0
+#
+# Note: In dev containers, vcan0 should be created on the host first:
+#   sudo modprobe vcan
+#   sudo ip link add dev vcan0 type vcan
+#   sudo ip link set vcan0 up
 
 set -e
 
@@ -10,10 +15,17 @@ INTERFACE="${1:-vcan0}"
 
 echo "Setting up virtual CAN interface: $INTERFACE"
 
-# Load vcan kernel module
-if ! lsmod | grep -q "^vcan"; then
-    echo "Loading vcan kernel module..."
-    sudo modprobe vcan
+# Load vcan kernel module (skip in containers where this fails)
+if command -v lsmod >/dev/null 2>&1; then
+    if ! lsmod | grep -q "^vcan"; then
+        echo "Loading vcan kernel module..."
+        if ! sudo modprobe vcan 2>/dev/null; then
+            echo "Warning: Cannot load vcan module (expected in containers)"
+            echo "Please create vcan0 on the host system first"
+        fi
+    fi
+else
+    echo "Info: Running in container, skipping module load check"
 fi
 
 # Check if interface already exists
