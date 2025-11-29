@@ -1,4 +1,10 @@
 ---
+# DevDash C++ Linting Configuration
+# Enforces SOLID principles and modern C++ best practices
+#
+# To run: cmake --build build/dev --target clang-tidy
+# Or: clang-tidy -p build/dev src/**/*.cpp
+
 Checks: >
   -*,
   bugprone-*,
@@ -6,31 +12,225 @@ Checks: >
   modernize-*,
   performance-*,
   readability-*,
+  clang-analyzer-*,
+  misc-*,
   -modernize-use-trailing-return-type,
   -readability-identifier-length,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -readability-magic-numbers,
   -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-owning-memory,
+  -misc-non-private-member-variables-in-classes
 
-WarningsAsErrors: ''
+# Treat these as errors in CI - catches issues before merge
+WarningsAsErrors: >
+  bugprone-*,
+  cppcoreguidelines-avoid-magic-numbers,
+  readability-magic-numbers,
+  cppcoreguidelines-virtual-class-destructor,
+  cppcoreguidelines-slicing,
+  bugprone-virtual-near-miss,
+  misc-unconventional-assign-operator,
+  bugprone-parent-virtual-call
 
-HeaderFilterRegex: 'src/.*'
+HeaderFilterRegex: 'src/.*\.h$'
 
 CheckOptions:
+  #############################################################################
+  # NAMING CONVENTIONS (enforced consistently)
+  #############################################################################
+  
   - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
     value: CamelCase
   - key: readability-identifier-naming.FunctionCase
     value: camelBack
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
   - key: readability-identifier-naming.VariableCase
     value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
   - key: readability-identifier-naming.PrivateMemberPrefix
-    value: m_
+    value: 'm_'
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: 'm_'
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: camelBack
   - key: readability-identifier-naming.ConstantCase
     value: UPPER_CASE
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.StaticConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
   - key: readability-identifier-naming.EnumConstantCase
     value: CamelCase
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+
+  #############################################################################
+  # MAGIC NUMBERS (enforce named constants)
+  # Similar to TypeScript's no-magic-numbers
+  #############################################################################
+  
+  # Allow common safe values: 0, 1, 2, -1 (indices, increments)
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues
+    value: '0;1;2;-1;8;16;32;64'  # Include common bit sizes
+  - key: readability-magic-numbers.IgnoredIntegerValues
+    value: '0;1;2;-1;8;16;32;64'
+  
+  # Allow 0.0, 1.0, 100.0 for floating point (common defaults/percentages)
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues
+    value: '0.0;1.0;-1.0;100.0'
+  - key: readability-magic-numbers.IgnoredFloatingPointValues
+    value: '0.0;1.0;-1.0;100.0'
+
+  #############################################################################
+  # COMPLEXITY LIMITS (Single Responsibility - keep functions focused)
+  # Similar to TypeScript's complexity rules
+  #############################################################################
+  
   - key: readability-function-cognitive-complexity.Threshold
-    value: 25
+    value: '25'
+  - key: readability-function-size.LineThreshold
+    value: '100'
+  - key: readability-function-size.StatementThreshold
+    value: '50'
+  - key: readability-function-size.BranchThreshold
+    value: '15'
+  - key: readability-function-size.ParameterThreshold
+    value: '6'
+  - key: readability-function-size.NestingThreshold
+    value: '4'
+
+  #############################################################################
+  # INHERITANCE & POLYMORPHISM (LSP - Liskov Substitution)
+  # Catches broken inheritance patterns
+  #############################################################################
+  
+  # Ensure virtual destructors in base classes
+  - key: cppcoreguidelines-virtual-class-destructor.CheckNonVirtualBaseDtor
+    value: 'true'
+  
+  # Catch slicing (child assigned to parent by value)
+  - key: cppcoreguidelines-slicing.AllowedTypes
+    value: ''
+
+  #############################################################################
+  # SPECIAL MEMBER FUNCTIONS (Rule of 5)
+  #############################################################################
+  
   - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
-    value: true
+    value: 'true'
+  - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctions
+    value: 'false'
+  - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted
+    value: 'true'
+
+  #############################################################################
+  # MODERNIZE (use C++20 features)
+  #############################################################################
+  
+  - key: modernize-use-auto.MinTypeNameLength
+    value: '10'
+  - key: modernize-use-nullptr.NullMacros
+    value: 'NULL'
+  - key: modernize-loop-convert.MinConfidence
+    value: 'reasonable'
+  - key: modernize-pass-by-value.IncludeStyle
+    value: 'llvm'
+  - key: modernize-replace-auto-ptr.IncludeStyle
+    value: 'llvm'
+  - key: modernize-use-override.AllowOverrideAndFinal
+    value: 'false'
+  - key: modernize-use-emplace.ContainersWithPushBack
+    value: '::std::vector;::std::list;::std::deque;::QVector;::QList'
+  - key: modernize-use-emplace.SmartPointers
+    value: '::std::shared_ptr;::std::unique_ptr;::std::auto_ptr;::std::weak_ptr'
+
+  #############################################################################
+  # PERFORMANCE
+  #############################################################################
+  
+  - key: performance-for-range-copy.WarnOnAllAutoCopies
+    value: 'true'
+  - key: performance-inefficient-string-concatenation.StrictMode
+    value: 'true'
+  - key: performance-move-const-arg.CheckTriviallyCopyableMove
+    value: 'true'
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: ''
+
+  #############################################################################
+  # BUGPRONE (catch common mistakes)
+  #############################################################################
+  
+  # Catch easily swappable parameters (helps with ISP - smaller interfaces)
+  - key: bugprone-easily-swappable-parameters.MinimumLength
+    value: '3'
+  - key: bugprone-easily-swappable-parameters.IgnoredParameterNames
+    value: 'parent;other;rhs;lhs'
+  - key: bugprone-easily-swappable-parameters.IgnoredParameterTypeSuffixes
+    value: 'bool;Bool;_t'
+  
+  # String operations
+  - key: bugprone-string-constructor.WarnOnLargeLength
+    value: 'true'
+  - key: bugprone-string-constructor.LargeLengthThreshold
+    value: '8388608'
+  
+  # Argument comments (helps with readability)
+  - key: bugprone-argument-comment.StrictMode
+    value: 'true'
+
+  #############################################################################
+  # READABILITY
+  #############################################################################
+  
+  # Enforce braces on control statements
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '0'
+  
+  # Simplify boolean expressions
+  - key: readability-simplify-boolean-expr.ChainedConditionalReturn
+    value: 'true'
+  - key: readability-simplify-boolean-expr.ChainedConditionalAssignment
+    value: 'true'
+  
+  # Else after return
+  - key: readability-else-after-return.WarnOnUnfixable
+    value: 'true'
+  - key: readability-else-after-return.WarnOnConditionVariables
+    value: 'true'
+  
+  # Redundant code
+  - key: readability-redundant-declaration.IgnoreMacros
+    value: 'true'
+  - key: readability-redundant-member-init.IgnoreBaseInCopyConstructors
+    value: 'true'
+  
+  # Container size checks
+  - key: readability-container-size-empty.IgnoredContainerClasses
+    value: ''
+
+  #############################################################################
+  # MISC
+  #############################################################################
+  
+  # Throw by value, catch by reference
+  - key: misc-throw-by-value-catch-by-reference.WarnOnLargeObjects
+    value: 'true'
+  - key: misc-throw-by-value-catch-by-reference.MaxSize
+    value: '64'

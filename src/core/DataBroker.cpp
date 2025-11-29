@@ -1,13 +1,207 @@
 #include "DataBroker.h"
 
 #include <QDebug>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
 
 namespace devdash {
 
-DataBroker::DataBroker(QObject* parent) : QObject(parent) {}
+namespace {
+
+/**
+ * @brief Map string property names to StandardChannel enum values.
+ *
+ * Used when parsing profile JSON to convert human-readable property
+ * names to type-safe enum values.
+ */
+const QHash<QString, StandardChannel> kPropertyNameToChannel = {
+    {"rpm", StandardChannel::Rpm},
+    {"throttlePosition", StandardChannel::ThrottlePosition},
+    {"manifoldPressure", StandardChannel::ManifoldPressure},
+    {"coolantTemperature", StandardChannel::CoolantTemperature},
+    {"oilTemperature", StandardChannel::OilTemperature},
+    {"intakeAirTemperature", StandardChannel::IntakeAirTemperature},
+    {"oilPressure", StandardChannel::OilPressure},
+    {"fuelPressure", StandardChannel::FuelPressure},
+    {"fuelLevel", StandardChannel::FuelLevel},
+    {"airFuelRatio", StandardChannel::AirFuelRatio},
+    {"batteryVoltage", StandardChannel::BatteryVoltage},
+    {"vehicleSpeed", StandardChannel::VehicleSpeed},
+    {"gear", StandardChannel::Gear},
+};
+
+} // anonymous namespace
+
+
+DataBroker::DataBroker(QObject* parent)
+    : QObject(parent) {
+    initializeChannelHandlers();
+}
 
 DataBroker::~DataBroker() {
     stop();
+}
+
+void DataBroker::initializeChannelHandlers() {
+    // Register handlers for each standard channel
+    // Each handler updates the property and emits the change signal
+    
+    m_channelHandlers[StandardChannel::Rpm] = [this](double value) {
+        if (m_rpm != value) {
+            m_rpm = value;
+            emit rpmChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::ThrottlePosition] = [this](double value) {
+        if (m_throttlePosition != value) {
+            m_throttlePosition = value;
+            emit throttlePositionChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::ManifoldPressure] = [this](double value) {
+        if (m_manifoldPressure != value) {
+            m_manifoldPressure = value;
+            emit manifoldPressureChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::CoolantTemperature] = [this](double value) {
+        if (m_coolantTemperature != value) {
+            m_coolantTemperature = value;
+            emit coolantTemperatureChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::OilTemperature] = [this](double value) {
+        if (m_oilTemperature != value) {
+            m_oilTemperature = value;
+            emit oilTemperatureChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::IntakeAirTemperature] = [this](double value) {
+        if (m_intakeAirTemperature != value) {
+            m_intakeAirTemperature = value;
+            emit intakeAirTemperatureChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::OilPressure] = [this](double value) {
+        if (m_oilPressure != value) {
+            m_oilPressure = value;
+            emit oilPressureChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::FuelPressure] = [this](double value) {
+        if (m_fuelPressure != value) {
+            m_fuelPressure = value;
+            emit fuelPressureChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::FuelLevel] = [this](double value) {
+        if (m_fuelLevel != value) {
+            m_fuelLevel = value;
+            emit fuelLevelChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::AirFuelRatio] = [this](double value) {
+        if (m_airFuelRatio != value) {
+            m_airFuelRatio = value;
+            emit airFuelRatioChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::BatteryVoltage] = [this](double value) {
+        if (m_batteryVoltage != value) {
+            m_batteryVoltage = value;
+            emit batteryVoltageChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::VehicleSpeed] = [this](double value) {
+        if (m_vehicleSpeed != value) {
+            m_vehicleSpeed = value;
+            emit vehicleSpeedChanged();
+        }
+    };
+
+    m_channelHandlers[StandardChannel::Gear] = [this](double value) {
+        auto gearValue = static_cast<int>(value);
+        if (m_gear != gearValue) {
+            m_gear = gearValue;
+            emit gearChanged();
+        }
+    };
+}
+
+bool DataBroker::loadProfile(const QString& profilePath) {
+    QFile file(profilePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical() << "DataBroker: Failed to open profile:" << profilePath
+                    << "-" << file.errorString();
+        return false;
+    }
+
+    QJsonParseError parseError;
+    auto doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        qCritical() << "DataBroker: Failed to parse profile:" << profilePath
+                    << "-" << parseError.errorString();
+        return false;
+    }
+
+    if (!doc.isObject()) {
+        qCritical() << "DataBroker: Profile must be a JSON object:" << profilePath;
+        return false;
+    }
+
+    return loadProfileFromJson(doc.object());
+}
+
+bool DataBroker::loadProfileFromJson(const QJsonObject& profile) {
+    m_channelMappings.clear();
+
+    const auto mappingsValue = profile.value("channelMappings");
+    if (mappingsValue.isUndefined() || mappingsValue.isNull()) {
+        qWarning() << "DataBroker: Profile has no channelMappings - using empty mapping";
+        return true;  // Not an error, just no mappings
+    }
+
+    if (!mappingsValue.isObject()) {
+        qCritical() << "DataBroker: channelMappings must be an object";
+        return false;
+    }
+
+    const auto mappings = mappingsValue.toObject();
+    for (auto it = mappings.begin(); it != mappings.end(); ++it) {
+        const QString& protocolChannelName = it.key();
+        const QString propertyName = it.value().toString();
+
+        if (propertyName.isEmpty()) {
+            qWarning() << "DataBroker: Skipping invalid mapping for"
+                       << protocolChannelName << "- value must be a string";
+            continue;
+        }
+
+        auto channelIt = kPropertyNameToChannel.find(propertyName);
+        if (channelIt == kPropertyNameToChannel.end()) {
+            qWarning() << "DataBroker: Unknown property name:" << propertyName
+                       << "for channel" << protocolChannelName;
+            continue;
+        }
+
+        m_channelMappings[protocolChannelName] = channelIt.value();
+        qDebug() << "DataBroker: Mapped" << protocolChannelName << "->" << propertyName;
+    }
+
+    qInfo() << "DataBroker: Loaded" << m_channelMappings.size() << "channel mappings";
+    return true;
 }
 
 void DataBroker::setAdapter(std::unique_ptr<IProtocolAdapter> adapter) {
@@ -19,10 +213,10 @@ void DataBroker::setAdapter(std::unique_ptr<IProtocolAdapter> adapter) {
     m_adapter = std::move(adapter);
 
     if (m_adapter) {
-        connect(m_adapter.get(), &IProtocolAdapter::channelUpdated, this,
-                &DataBroker::onChannelUpdated);
-        connect(m_adapter.get(), &IProtocolAdapter::connectionStateChanged, this,
-                &DataBroker::onConnectionStateChanged);
+        connect(m_adapter.get(), &IProtocolAdapter::channelUpdated,
+                this, &DataBroker::onChannelUpdated);
+        connect(m_adapter.get(), &IProtocolAdapter::connectionStateChanged,
+                this, &DataBroker::onConnectionStateChanged);
     }
 }
 
@@ -31,6 +225,11 @@ bool DataBroker::start() {
         qWarning() << "DataBroker: No adapter set";
         return false;
     }
+
+    if (m_channelMappings.isEmpty()) {
+        qWarning() << "DataBroker: No channel mappings loaded - data will be ignored";
+    }
+
     return m_adapter->start();
 }
 
@@ -40,79 +239,31 @@ void DataBroker::stop() {
     }
 }
 
+std::optional<StandardChannel> DataBroker::mapToStandardChannel(
+        const QString& protocolChannelName) const {
+    auto it = m_channelMappings.find(protocolChannelName);
+    if (it != m_channelMappings.end()) {
+        return it.value();
+    }
+    return std::nullopt;
+}
+
 void DataBroker::onChannelUpdated(const QString& channelName, const ChannelValue& value) {
     if (!value.valid) {
         return;
     }
 
-    // Map channel names to properties
-    // TODO: Implement proper channel name mapping from profile
-    if (channelName == "rpm" || channelName == "RPM") {
-        if (m_rpm != value.value) {
-            m_rpm = value.value;
-            emit rpmChanged();
-        }
-    } else if (channelName == "throttlePosition" || channelName == "TPS") {
-        if (m_throttlePosition != value.value) {
-            m_throttlePosition = value.value;
-            emit throttlePositionChanged();
-        }
-    } else if (channelName == "manifoldPressure" || channelName == "MAP") {
-        if (m_manifoldPressure != value.value) {
-            m_manifoldPressure = value.value;
-            emit manifoldPressureChanged();
-        }
-    } else if (channelName == "coolantTemperature" || channelName == "ECT") {
-        if (m_coolantTemperature != value.value) {
-            m_coolantTemperature = value.value;
-            emit coolantTemperatureChanged();
-        }
-    } else if (channelName == "oilTemperature") {
-        if (m_oilTemperature != value.value) {
-            m_oilTemperature = value.value;
-            emit oilTemperatureChanged();
-        }
-    } else if (channelName == "intakeAirTemperature" || channelName == "IAT") {
-        if (m_intakeAirTemperature != value.value) {
-            m_intakeAirTemperature = value.value;
-            emit intakeAirTemperatureChanged();
-        }
-    } else if (channelName == "oilPressure") {
-        if (m_oilPressure != value.value) {
-            m_oilPressure = value.value;
-            emit oilPressureChanged();
-        }
-    } else if (channelName == "fuelPressure") {
-        if (m_fuelPressure != value.value) {
-            m_fuelPressure = value.value;
-            emit fuelPressureChanged();
-        }
-    } else if (channelName == "fuelLevel") {
-        if (m_fuelLevel != value.value) {
-            m_fuelLevel = value.value;
-            emit fuelLevelChanged();
-        }
-    } else if (channelName == "airFuelRatio" || channelName == "AFR") {
-        if (m_airFuelRatio != value.value) {
-            m_airFuelRatio = value.value;
-            emit airFuelRatioChanged();
-        }
-    } else if (channelName == "batteryVoltage") {
-        if (m_batteryVoltage != value.value) {
-            m_batteryVoltage = value.value;
-            emit batteryVoltageChanged();
-        }
-    } else if (channelName == "vehicleSpeed" || channelName == "speed") {
-        if (m_vehicleSpeed != value.value) {
-            m_vehicleSpeed = value.value;
-            emit vehicleSpeedChanged();
-        }
-    } else if (channelName == "gear") {
-        auto gearValue = static_cast<int>(value.value);
-        if (m_gear != gearValue) {
-            m_gear = gearValue;
-            emit gearChanged();
-        }
+    // Map protocol channel name to standard channel
+    auto standardChannel = mapToStandardChannel(channelName);
+    if (!standardChannel.has_value()) {
+        // Unmapped channel - this is normal for channels we don't care about
+        return;
+    }
+
+    // Find and invoke the handler for this channel
+    auto handlerIt = m_channelHandlers.find(standardChannel.value());
+    if (handlerIt != m_channelHandlers.end()) {
+        handlerIt.value()(value.value);
     }
 }
 
@@ -124,6 +275,7 @@ void DataBroker::onConnectionStateChanged(bool connected) {
 }
 
 // Property getters
+
 double DataBroker::rpm() const {
     return m_rpm;
 }

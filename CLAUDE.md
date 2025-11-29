@@ -11,28 +11,28 @@ A modular automotive dashboard framework built with Qt 6/QML and C++20. Targets 
 cmake --preset dev
 
 # Build
-cmake --build build
+cmake --build build/dev
 
 # Run tests
-ctest --test-dir build --output-on-failure
+ctest --test-dir build/dev --output-on-failure
 
 # Run with mock data
-./scripts/setup-vcan.sh
+.devcontainer/setup-vcan.sh
 haltech-mock --interface vcan0 --scenario idle &
-./build/devdash --profile profiles/example-simulator.json
+./build/dev/devdash --profile profiles/example-simulator.json
 
 # Lint (clang-tidy)
-cmake --build build --target clang-tidy
+cmake --build build/dev --target clang-tidy
 
 # Format (check)
-cmake --build build --target format-check
+cmake --build build/dev --target format-check
 
 # Format (fix)
-cmake --build build --target format-fix
+cmake --build build/dev --target format-fix
 
 # Generate documentation
-cmake --build build --target docs
-# Output: build/docs/html/index.html
+cmake --build build/dev --target docs
+# Output: build/dev/docs/html/index.html
 ```
 
 ## Architecture
@@ -44,10 +44,104 @@ IProtocolAdapter (interface)
     └── HaltechAdapter, Obd2Adapter, SimulatorAdapter
 DataBroker (central data hub, exposes Q_PROPERTY for QML)
     └── Receives data from adapters, handles unit conversion
+    └── Channel mappings are DATA-DRIVEN from JSON profiles
 ClusterWindow / HeadUnitWindow (QML-based UIs)
 ```
 
 Vehicle-specific config lives in JSON profiles (`profiles/*.json`), not code.
+
+## Critical Code Generation Rules
+
+**These rules are mandatory. Violations will be rejected in code review.**
+
+### 1. Every Public Function MUST Have Doxygen Documentation
+
+No exceptions. If it's public, it gets documented:
+
+```cpp
+// ❌ WRONG - Missing documentation
+void processFrame(const QCanBusFrame& frame);
+
+// ✅ CORRECT - Full Doxygen documentation
+/**
+ * @brief Process an incoming CAN frame and emit decoded channel values.
+ *
+ * Decodes the frame according to the loaded protocol definition and
+ * emits channelUpdated signals for each decoded value.
+ *
+ * @param frame Valid CAN frame received from the bus
+ * @pre frame.isValid() must be true
+ * @note Invalid frames are logged and skipped, not propagated
+ */
+void processFrame(const QCanBusFrame& frame);
+```
+
+### 2. Never Use String-Based Conditionals for Dispatching
+
+Use maps, enums, registries, or polymorphism instead:
+
+```cpp
+// ❌ WRONG - String-based dispatch is unmaintainable
+void onChannelUpdated(const QString& name, double value) {
+    if (name == "rpm" || name == "RPM") {
+        m_rpm = value;
+    } else if (name == "throttlePosition" || name == "TPS") {
+        m_throttle = value;
+    }
+    // ... 50 more else-if blocks
+}
+
+// ✅ CORRECT - Data-driven dispatch via registry
+void onChannelUpdated(const QString& name, double value) {
+    if (auto it = m_channelHandlers.find(name); it != m_channelHandlers.end()) {
+        it->second(value);
+    }
+}
+```
+
+### 3. Configuration Comes from JSON Profiles, Not Code
+
+Protocol-specific values (channel names, frame IDs, scaling factors) belong in JSON:
+
+```cpp
+// ❌ WRONG - Hardcoded protocol knowledge in DataBroker
+if (channelName == "ECT") {  // Haltech-specific abbreviation
+    m_coolantTemperature = value;
+}
+
+// ✅ CORRECT - Profile defines the mapping
+// profiles/haltech-nexus.json:
+// { "channelMappings": { "ECT": "coolantTemperature" } }
+```
+
+### 4. Use Strong Types Over Primitives
+
+```cpp
+// ❌ WRONG - Primitive obsession
+void setTemperature(double value, int unit);
+
+// ✅ CORRECT - Strong types
+enum class TemperatureUnit { Celsius, Fahrenheit, Kelvin };
+void setTemperature(Temperature value);  // Temperature class handles units
+```
+
+### 5. Validate All External Input
+
+CAN data, JSON configs, user input - never trust it:
+
+```cpp
+// ❌ WRONG - Trusting external data
+auto rpm = decodeUint16(payload, 0);
+m_rpm = rpm;  // Could be garbage!
+
+// ✅ CORRECT - Validate before use
+auto rpm = decodeUint16(payload, 0);
+if (rpm > MAX_VALID_RPM) {
+    qWarning() << "Invalid RPM value:" << rpm << "- ignoring frame";
+    return;
+}
+m_rpm = rpm;
+```
 
 ## Code Style
 
@@ -119,7 +213,9 @@ namespace devdash::protocol { }
 
 ### Documentation (Doxygen)
 
-All public APIs must have Doxygen documentation. Use `@` prefix style:
+**All public APIs must have Doxygen documentation. This is mandatory, not optional.**
+
+Use `@` prefix style:
 
 ```cpp
 /**
@@ -130,8 +226,7 @@ All public APIs must have Doxygen documentation. Use `@` prefix style:
  *
  * @param frameId Hex frame ID (e.g., "0x360")
  * @param payload Raw 8-byte CAN payload
- * @return Map of channel names to decoded values
- * @throws std::invalid_argument If frameId is not recognized
+ * @return Map of channel names to decoded values, empty if frameId unrecognized
  *
  * @note Temperatures are converted from Kelvin to Celsius.
  * @see HaltechProtocol::encodeFrame()
@@ -150,14 +245,14 @@ std::map<QString, double> decodeFrame(const QString& frameId, const QByteArray& 
 - `@brief` - One-line summary (required for all public functions/classes)
 - `@param` - Document each parameter
 - `@return` - Document return value (if non-void)
-- `@throws` - Document exceptions that may be thrown
 
-**Optional tags:**
+**Recommended tags:**
+- `@pre` / `@post` - Preconditions and postconditions
+- `@throws` - Document exceptions that may be thrown
 - `@note` - Important usage notes
 - `@warning` - Gotchas or dangerous behavior
 - `@see` - Cross-references to related functions
-- `@example` / `@code` - Usage examples
-- `@pre` / `@post` - Preconditions and postconditions
+- `@example` / `@code` - Usage examples for complex APIs
 
 **Class documentation:**
 
@@ -169,17 +264,22 @@ std::map<QString, double> decodeFrame(const QString& frameId, const QByteArray& 
  * conversions based on user preferences, and exposes values to QML
  * via Q_PROPERTY bindings.
  *
+ * Channel mappings are configured via JSON profiles, not hardcoded.
+ * The broker is protocol-agnostic - it doesn't know or care whether
+ * data comes from Haltech, OBD2, or a simulator.
+ *
  * @note This class is thread-safe. Data updates from adapter threads
  *       are marshalled to the main thread via queued connections.
  *
  * @see IProtocolAdapter
+ * @see ChannelRegistry
  */
 class DataBroker : public QObject {
     Q_OBJECT
     
     /**
      * @brief Current engine RPM.
-     * @note Updates at 50Hz from Haltech adapter.
+     * @note Update frequency depends on the adapter (typically 50Hz for Haltech).
      */
     Q_PROPERTY(double rpm READ rpm NOTIFY rpmChanged)
     // ...
@@ -204,6 +304,169 @@ class DataBroker : public QObject {
 - CAN parse failures: log and skip frame, don't crash
 - Config errors: fail fast at startup with clear message
 - Never `abort()` or `exit()` from library code
+
+## Anti-Patterns to Avoid
+
+These patterns are enforced by clang-tidy and code review. Claude Code must not generate code with these issues.
+
+### Giant If/Else Chains (OCP Violation)
+
+```cpp
+// ❌ This is an unmaintainable nightmare - violates Open/Closed
+if (name == "rpm") { ... }
+else if (name == "RPM") { ... }
+else if (name == "engineSpeed") { ... }
+else if (name == "throttle") { ... }
+// 50 more conditions...
+
+// ✅ Use a lookup table configured from JSON
+auto handler = m_handlers.find(name);
+if (handler != m_handlers.end()) {
+    handler->second(value);
+}
+```
+
+### Switch on Type (OCP Violation)
+
+```cpp
+// ❌ Adding new types requires modifying this code
+switch (event.type) {
+    case EventType::CanFrame: processCanFrame(event); break;
+    case EventType::GpsUpdate: processGps(event); break;
+    // Must modify for each new event type!
+}
+
+// ✅ Use polymorphism
+class IEventHandler {
+public:
+    virtual void handle(const Event& event) = 0;
+};
+
+// Each event type has its own handler - no switch needed
+m_handlers[event.type]->handle(event);
+```
+
+### Magic Strings
+
+```cpp
+// ❌ Protocol-specific strings scattered throughout code
+if (channelName == "ECT") { ... }  // What is ECT? Haltech abbreviation!
+
+// ✅ Use constants or enums, map from profile
+if (channelId == StandardChannel::CoolantTemperature) { ... }
+```
+
+### Concrete Dependencies (DIP Violation)
+
+```cpp
+// ❌ Hard-coded dependency - impossible to test or swap
+class DataBroker {
+    void init() {
+        m_adapter = new HaltechAdapter();  // Concrete dependency!
+    }
+};
+
+// ✅ Inject dependencies through constructor
+class DataBroker {
+public:
+    explicit DataBroker(std::unique_ptr<IProtocolAdapter> adapter)
+        : m_adapter(std::move(adapter)) {}
+};
+```
+
+### Throwing Overrides (LSP Violation)
+
+```cpp
+// ❌ Child breaks parent's contract
+class IProtocolAdapter {
+public:
+    virtual void start() = 0;  // Contract: starts the adapter
+};
+
+class BrokenAdapter : public IProtocolAdapter {
+    void start() override {
+        throw std::runtime_error("Not implemented");  // LSP violation!
+    }
+};
+
+// ✅ Don't inherit if you can't fulfill the contract
+// Or provide a proper implementation
+```
+
+### Empty Overrides (LSP Violation)
+
+```cpp
+// ❌ Empty override doesn't fulfill the contract
+class BrokenAdapter : public IProtocolAdapter {
+    void stop() override {
+        // Does nothing - violates LSP!
+    }
+};
+
+// ✅ Either implement properly or don't override
+void stop() override {
+    m_canDevice->disconnectDevice();
+    m_running = false;
+}
+```
+
+### Mixing Concerns (SRP Violation)
+
+```cpp
+// ❌ DataBroker knowing Haltech-specific details
+if (channelName == "TPS") {  // Haltech calls it TPS
+    m_throttlePosition = value;
+}
+
+// ✅ Profile maps protocol names → standard property names
+// DataBroker only knows standard names
+```
+
+### Primitive Obsession
+
+```cpp
+// ❌ What unit is this? PSI? kPa? Bar?
+double m_oilPressure;
+
+// ✅ Type carries its unit
+Pressure m_oilPressure;  // Internally stored in kPa, converts on access
+```
+
+### Bloated Interfaces (ISP Violation)
+
+```cpp
+// ❌ Interface requires implementing unused methods
+class IVehicleDataSource {
+    virtual double getRpm() = 0;
+    virtual double getSpeed() = 0;
+    virtual GpsCoordinate getLocation() = 0;  // Not all sources have GPS!
+    virtual CameraFrame getVideo() = 0;       // Not all sources have cameras!
+};
+
+// ✅ Segregate interfaces by capability
+class IEngineDataSource {
+    virtual double getRpm() = 0;
+    virtual double getSpeed() = 0;
+};
+
+class IGpsSource {
+    virtual GpsCoordinate getLocation() = 0;
+};
+```
+
+### Generic Record Types
+
+```cpp
+// ❌ Too generic - loses type safety
+std::map<std::string, std::any> config;
+
+// ✅ Use specific types
+struct AdapterConfig {
+    QString interface;
+    QString protocolFile;
+    int baudRate;
+};
+```
 
 ## Testing
 
@@ -240,28 +503,62 @@ TEST_CASE("HaltechProtocol decodes RPM correctly", "[haltech]") {
 
 ## Linting & Static Analysis
 
+**All code must pass linting with zero warnings.** CI will reject code with lint issues.
+
 ### clang-tidy
 
-Configured in `.clang-tidy`. Key checks enabled:
+Configured in `.clang-tidy`. The linter enforces SOLID principles:
 
-- `cppcoreguidelines-*` (SOLID, modern C++)
-- `performance-*` (avoid copies, unnecessary allocations)
-- `bugprone-*` (common mistakes)
-- `modernize-*` (use modern C++ features)
-- `readability-*` (clear code)
+| SOLID Principle | clang-tidy Checks |
+|-----------------|-------------------|
+| **SRP** (Single Responsibility) | `readability-function-cognitive-complexity`, `readability-function-size` |
+| **OCP** (Open/Closed) | Caught by code review - avoid switch-on-type patterns |
+| **LSP** (Liskov Substitution) | `cppcoreguidelines-virtual-class-destructor`, `cppcoreguidelines-slicing`, `bugprone-parent-virtual-call` |
+| **ISP** (Interface Segregation) | `bugprone-easily-swappable-parameters` (too many params = bloated interface) |
+| **DIP** (Dependency Inversion) | Prefer interfaces over concrete types (enforced by code review) |
 
-Suppressions go in code with comments:
+**Key checks enabled:**
+
+- `cppcoreguidelines-avoid-magic-numbers` - Use named constants
+- `cppcoreguidelines-virtual-class-destructor` - Base classes need virtual destructors
+- `cppcoreguidelines-slicing` - Catch accidental object slicing
+- `bugprone-virtual-near-miss` - Catch typos in virtual function overrides
+- `readability-function-cognitive-complexity` - Keep functions simple (max 25)
+- `readability-function-size` - Max 100 lines, 50 statements, 6 parameters
+- `modernize-*` - Use C++20 features
+
+**Suppressions go in code with comments explaining why:**
 
 ```cpp
+// Frame ID is protocol-defined constant, documented in protocols/haltech-v2.35.json
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-constexpr double ATMOSPHERIC_PRESSURE_KPA = 101.325;
+constexpr uint32_t HALTECH_RPM_FRAME_ID = 0x360;
 ```
+
+**Never suppress without a comment.** If you can't justify the suppression, fix the code.
 
 ### clang-format
 
 Configured in `.clang-format`. Based on LLVM style with modifications for Qt.
 
+```bash
+# Check formatting
+cmake --build build/dev --target format-check
+
+# Fix formatting
+cmake --build build/dev --target format-fix
+```
+
 Format before committing. CI will reject unformatted code.
+
+### Pre-commit Checklist
+
+Before committing, ensure:
+
+1. `cmake --build build/dev` - Compiles without warnings
+2. `cmake --build build/dev --target clang-tidy` - Zero lint issues
+3. `cmake --build build/dev --target format-check` - Code is formatted
+4. `ctest --test-dir build/dev` - All tests pass
 
 ## CMake
 
@@ -338,7 +635,7 @@ candump vcan0
 cansend vcan0 360#0DAC03E8000003E8
 
 # Check adapter connection
-./build/devdash --profile profiles/debug.json --log-level debug
+./build/dev/devdash --profile profiles/debug.json --log-level debug
 ```
 
 ## Don't
@@ -348,3 +645,6 @@ cansend vcan0 360#0DAC03E8000003E8
 - Don't hardcode vehicle-specific values (use profiles)
 - Don't use `QString::arg()` for many arguments (use `std::format` or `QStringLiteral`)
 - Don't suppress warnings without comment explaining why
+- Don't use string-based dispatch (if/else chains on string values)
+- Don't put protocol-specific knowledge in DataBroker
+- Don't skip Doxygen documentation on public APIs
