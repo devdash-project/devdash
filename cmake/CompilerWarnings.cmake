@@ -15,9 +15,6 @@ function(set_project_warnings target_name)
         -Wformat=2
         -Wimplicit-fallthrough
         -Wmisleading-indentation
-        -Wduplicated-cond
-        -Wduplicated-branches
-        -Wlogical-op
         -Wnon-virtual-dtor
         -Wold-style-cast
         -Woverloaded-virtual
@@ -25,6 +22,9 @@ function(set_project_warnings target_name)
 
     set(GCC_WARNINGS
         ${CLANG_WARNINGS}
+        -Wduplicated-cond
+        -Wduplicated-branches
+        -Wlogical-op
         -Wuseless-cast
     )
 
