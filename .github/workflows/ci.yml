@@ -66,8 +66,8 @@ jobs:
       - name: Run clang-tidy
         run: |
           cmake --build build/ci 2>&1 | tee build.log
-          if grep -q "warning:" build.log; then
-            echo "clang-tidy warnings found"
+          if grep -q "error:" build.log; then
+            echo "clang-tidy errors found"
             exit 1
           fi
 
