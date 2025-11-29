@@ -25,4 +25,5 @@ target_link_libraries(devdash_cluster PUBLIC
 
 set_project_warnings(devdash_cluster)
 enable_sanitizers(devdash_cluster)
-enable_clang_tidy(devdash_cluster)
+# Skip clang-tidy for QML modules (qt_add_qml_module generates .rcc files with magic numbers)
+# enable_clang_tidy(devdash_cluster)
