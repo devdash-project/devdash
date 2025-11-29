@@ -71,6 +71,9 @@ ENV QT_QPA_PLATFORM=xcb
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code
 
+# Install Docker CLI (for act to run GitHub Actions locally via host Docker)
+RUN curl -fsSL https://get.docker.com | sh
+
 # Install haltech-mock CAN simulator
 RUN python3 -m venv /opt/haltech-venv && \
     /opt/haltech-venv/bin/pip install haltech-mock==0.1.1
@@ -89,7 +92,8 @@ RUN apt-get update && apt-get install -y sudo \
     EXISTING_USER=$USERNAME; \
     fi \
     && echo "$EXISTING_USER ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$EXISTING_USER \
-    && chmod 0440 /etc/sudoers.d/$EXISTING_USER
+    && chmod 0440 /etc/sudoers.d/$EXISTING_USER \
+    && usermod -aG docker $EXISTING_USER
 
 USER $USER_UID
 WORKDIR /workspace
