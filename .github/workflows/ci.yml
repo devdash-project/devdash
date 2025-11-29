@@ -15,6 +15,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build \
@@ -45,6 +46,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build clang clang-tidy \
@@ -73,6 +75,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build gcovr \
