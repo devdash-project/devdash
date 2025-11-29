@@ -71,9 +71,9 @@ ENV QT_QPA_PLATFORM=xcb
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code
 
-# Install haltech-mock in a venv (if available)
+# Install haltech-mock CAN simulator
 RUN python3 -m venv /opt/haltech-venv && \
-    /opt/haltech-venv/bin/pip install haltech-mock || echo "haltech-mock not yet published"
+    /opt/haltech-venv/bin/pip install haltech-mock==0.1.1
 ENV PATH="/opt/haltech-venv/bin:$PATH"
 
 # Create non-root user
