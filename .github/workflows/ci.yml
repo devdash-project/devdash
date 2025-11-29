@@ -8,14 +8,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build \
@@ -39,14 +38,13 @@ jobs:
         run: cmake --build build/ci --target format-check
 
   lint:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build clang clang-tidy \
@@ -68,14 +66,13 @@ jobs:
           fi
 
   coverage:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build gcovr \

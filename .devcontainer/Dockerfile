@@ -2,18 +2,28 @@ FROM arm64v8/ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install GitHub CLI
+# System packages (install curl first, needed for GitHub CLI setup)
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install GitHub CLI repository
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 
-# System packages
+# Install act for local GitHub Actions testing
+RUN curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash \
+    && mv ./bin/act /usr/local/bin/act
+
+# Main system packages
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     ninja-build \
     git \
-    curl \
     pkg-config \
     clang \
     clang-format \
@@ -44,10 +54,7 @@ RUN apt-get update && apt-get install -y \
     # Node.js (for Claude Code)
     nodejs \
     npm \
-    && rm -rf /var/lib/apt/lists/*
-
-# Display & UI testing tools
-RUN apt-get update && apt-get install -y \
+    # Display & UI testing tools
     xvfb \
     x11vnc \
     novnc \
@@ -62,7 +69,6 @@ ENV DISPLAY=:99
 ENV QT_QPA_PLATFORM=xcb
 
 # Install Claude Code globally
-# Users authenticate with their own Anthropic account on first run
 RUN npm install -g @anthropic-ai/claude-code
 
 # Install haltech-mock in a venv (if available)
@@ -70,19 +76,18 @@ RUN python3 -m venv /opt/haltech-venv && \
     /opt/haltech-venv/bin/pip install haltech-mock || echo "haltech-mock not yet published"
 ENV PATH="/opt/haltech-venv/bin:$PATH"
 
-# Create non-root user (handle case where UID/GID 1000 already exists in Ubuntu 24.04)
+# Create non-root user
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 RUN apt-get update && apt-get install -y sudo \
     && rm -rf /var/lib/apt/lists/* \
-    # Get existing user with UID 1000 or create new one
     && EXISTING_USER=$(getent passwd $USER_UID | cut -d: -f1) \
     && if [ -z "$EXISTING_USER" ]; then \
-         groupadd --gid $USER_GID $USERNAME; \
-         useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
-         EXISTING_USER=$USERNAME; \
-       fi \
+    groupadd --gid $USER_GID $USERNAME; \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
+    EXISTING_USER=$USERNAME; \
+    fi \
     && echo "$EXISTING_USER ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$EXISTING_USER \
     && chmod 0440 /etc/sudoers.d/$EXISTING_USER
 

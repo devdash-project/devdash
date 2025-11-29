@@ -5,12 +5,21 @@
     },
     "runArgs": [
         "--privileged",
-        "--cap-add=NET_ADMIN"
+        "--cap-add=NET_ADMIN",
+        "--hostname=devdash"
     ],
     "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
         "source=devdash-claude-config,target=/home/ubuntu/.claude,type=volume",
-        "source=devdash-gh-config,target=/home/ubuntu/.config/gh,type=volume"
+        "source=devdash-gh-config,target=/home/ubuntu/.config/gh,type=volume",
+        "source=${localEnv:HOME}/.secrets/claude_token,target=/run/secrets/claude_token,type=bind,readonly"
     ],
+    "forwardPorts": [
+        6080
+    ],
+    "otherPortsAttributes": {
+        "onAutoForward": "silent"
+    },
     "customizations": {
         "vscode": {
             "extensions": [
@@ -39,9 +48,6 @@
             }
         }
     },
-    "postCreateCommand": "sudo chown -R $(id -u):$(id -g) /home/ubuntu/.claude /home/ubuntu/.config/gh 2>/dev/null || (mkdir -p /home/ubuntu/.claude /home/ubuntu/.config/gh) && bash .devcontainer/setup-vcan.sh && bash .devcontainer/start-display.sh",
-    "remoteUser": "ubuntu",
-    "forwardPorts": [
-        6080
-    ]
+    "postCreateCommand": "echo '{\"hasCompletedOnboarding\": true}' > /home/ubuntu/.claude.json && echo 'export CLAUDE_CODE_OAUTH_TOKEN=$(cat /run/secrets/claude_token 2>/dev/null)' >> /home/ubuntu/.bashrc && sudo chown -R $(id -u):$(id -g) /home/ubuntu/.claude /home/ubuntu/.config/gh 2>/dev/null || (mkdir -p /home/ubuntu/.claude /home/ubuntu/.config/gh) && bash .devcontainer/setup-vcan.sh && bash .devcontainer/start-display.sh",
+    "remoteUser": "ubuntu"
 }
