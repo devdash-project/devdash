@@ -63,3 +63,20 @@ if(CLANG_FORMAT)
         COMMENT "Fixing code formatting"
     )
 endif()
+
+# clang-tidy targets
+find_program(CLANG_TIDY_BIN clang-tidy)
+if(CLANG_TIDY_BIN)
+    file(GLOB_RECURSE ALL_SOURCE_FILES_TIDY
+        ${CMAKE_SOURCE_DIR}/src/*.cpp
+        ${CMAKE_SOURCE_DIR}/tests/*.cpp
+    )
+    add_custom_target(clang-tidy
+        COMMAND ${CLANG_TIDY_BIN} -p ${CMAKE_BINARY_DIR} ${ALL_SOURCE_FILES_TIDY}
+        COMMENT "Running clang-tidy checks"
+    )
+    add_custom_target(clang-tidy-fix
+        COMMAND ${CLANG_TIDY_BIN} -p ${CMAKE_BINARY_DIR} --fix ${ALL_SOURCE_FILES_TIDY}
+        COMMENT "Running clang-tidy with --fix"
+    )
+endif()

@@ -2,8 +2,8 @@
 
 #include <QDebug>
 #include <QFile>
-#include <QJsonDocument>
 #include <QJsonArray>
+#include <QJsonDocument>
 
 namespace devdash {
 
@@ -33,9 +33,7 @@ const QHash<QString, StandardChannel> kPropertyNameToChannel = {
 
 } // anonymous namespace
 
-
-DataBroker::DataBroker(QObject* parent)
-    : QObject(parent) {
+DataBroker::DataBroker(QObject* parent) : QObject(parent) {
     initializeChannelHandlers();
 }
 
@@ -46,7 +44,7 @@ DataBroker::~DataBroker() {
 void DataBroker::initializeChannelHandlers() {
     // Register handlers for each standard channel
     // Each handler updates the property and emits the change signal
-    
+
     m_channelHandlers[StandardChannel::Rpm] = [this](double value) {
         if (m_rpm != value) {
             m_rpm = value;
@@ -143,16 +141,16 @@ void DataBroker::initializeChannelHandlers() {
 bool DataBroker::loadProfile(const QString& profilePath) {
     QFile file(profilePath);
     if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "DataBroker: Failed to open profile:" << profilePath
-                    << "-" << file.errorString();
+        qCritical() << "DataBroker: Failed to open profile:" << profilePath << "-"
+                    << file.errorString();
         return false;
     }
 
     QJsonParseError parseError;
     auto doc = QJsonDocument::fromJson(file.readAll(), &parseError);
     if (parseError.error != QJsonParseError::NoError) {
-        qCritical() << "DataBroker: Failed to parse profile:" << profilePath
-                    << "-" << parseError.errorString();
+        qCritical() << "DataBroker: Failed to parse profile:" << profilePath << "-"
+                    << parseError.errorString();
         return false;
     }
 
@@ -167,37 +165,37 @@ bool DataBroker::loadProfile(const QString& profilePath) {
 bool DataBroker::loadProfileFromJson(const QJsonObject& profile) {
     m_channelMappings.clear();
 
-    const auto mappingsValue = profile.value("channelMappings");
-    if (mappingsValue.isUndefined() || mappingsValue.isNull()) {
+    const auto MAPPINGS_VALUE = profile.value("channelMappings");
+    if (MAPPINGS_VALUE.isUndefined() || MAPPINGS_VALUE.isNull()) {
         qWarning() << "DataBroker: Profile has no channelMappings - using empty mapping";
-        return true;  // Not an error, just no mappings
+        return true; // Not an error, just no mappings
     }
 
-    if (!mappingsValue.isObject()) {
+    if (!MAPPINGS_VALUE.isObject()) {
         qCritical() << "DataBroker: channelMappings must be an object";
         return false;
     }
 
-    const auto mappings = mappingsValue.toObject();
-    for (auto it = mappings.begin(); it != mappings.end(); ++it) {
+    const auto MAPPINGS = MAPPINGS_VALUE.toObject();
+    for (auto it = MAPPINGS.begin(); it != MAPPINGS.end(); ++it) {
         const QString& protocolChannelName = it.key();
-        const QString propertyName = it.value().toString();
+        const QString PROPERTY_NAME = it.value().toString();
 
-        if (propertyName.isEmpty()) {
-            qWarning() << "DataBroker: Skipping invalid mapping for"
-                       << protocolChannelName << "- value must be a string";
+        if (PROPERTY_NAME.isEmpty()) {
+            qWarning() << "DataBroker: Skipping invalid mapping for" << protocolChannelName
+                       << "- value must be a string";
             continue;
         }
 
-        auto channelIt = kPropertyNameToChannel.find(propertyName);
+        auto channelIt = kPropertyNameToChannel.find(PROPERTY_NAME);
         if (channelIt == kPropertyNameToChannel.end()) {
-            qWarning() << "DataBroker: Unknown property name:" << propertyName
-                       << "for channel" << protocolChannelName;
+            qWarning() << "DataBroker: Unknown property name:" << PROPERTY_NAME << "for channel"
+                       << protocolChannelName;
             continue;
         }
 
         m_channelMappings[protocolChannelName] = channelIt.value();
-        qDebug() << "DataBroker: Mapped" << protocolChannelName << "->" << propertyName;
+        qDebug() << "DataBroker: Mapped" << protocolChannelName << "->" << PROPERTY_NAME;
     }
 
     qInfo() << "DataBroker: Loaded" << m_channelMappings.size() << "channel mappings";
@@ -213,10 +211,10 @@ void DataBroker::setAdapter(std::unique_ptr<IProtocolAdapter> adapter) {
     m_adapter = std::move(adapter);
 
     if (m_adapter) {
-        connect(m_adapter.get(), &IProtocolAdapter::channelUpdated,
-                this, &DataBroker::onChannelUpdated);
-        connect(m_adapter.get(), &IProtocolAdapter::connectionStateChanged,
-                this, &DataBroker::onConnectionStateChanged);
+        connect(m_adapter.get(), &IProtocolAdapter::channelUpdated, this,
+                &DataBroker::onChannelUpdated);
+        connect(m_adapter.get(), &IProtocolAdapter::connectionStateChanged, this,
+                &DataBroker::onConnectionStateChanged);
     }
 }
 
@@ -239,8 +237,8 @@ void DataBroker::stop() {
     }
 }
 
-std::optional<StandardChannel> DataBroker::mapToStandardChannel(
-        const QString& protocolChannelName) const {
+std::optional<StandardChannel>
+DataBroker::mapToStandardChannel(const QString& protocolChannelName) const {
     auto it = m_channelMappings.find(protocolChannelName);
     if (it != m_channelMappings.end()) {
         return it.value();

@@ -37,9 +37,9 @@ class HaltechAdapter : public IProtocolAdapter {
     void onErrorOccurred(QCanBusDevice::CanBusError error);
     void onStateChanged(QCanBusDevice::CanBusDeviceState state);
 
-  private:
     void processFrame(const QCanBusFrame& frame);
 
+  private:
     QString m_interface;
     std::unique_ptr<QCanBusDevice> m_canDevice;
     HaltechProtocol m_protocol;

@@ -7,6 +7,14 @@
 
 namespace devdash {
 
+namespace {
+/// Default update rate for simulated data (Hz -> ms)
+constexpr int DEFAULT_UPDATE_INTERVAL_MS = 50;
+
+/// Idle RPM for simulated engine (typical gasoline engine idle)
+constexpr double IDLE_RPM_TARGET = 800.0;
+} // anonymous namespace
+
 /**
  * @brief Simulator adapter for testing without real hardware
  *
@@ -33,13 +41,13 @@ class SimulatorAdapter : public IProtocolAdapter {
   private:
     QTimer m_timer;
     QHash<QString, ChannelValue> m_channels;
-    int m_updateIntervalMs{50};
+    int m_updateIntervalMs{DEFAULT_UPDATE_INTERVAL_MS};
     bool m_running{false};
 
     // Simulation state
     double m_simulatedRpm{0.0};
     double m_simulatedThrottle{0.0};
-    double m_rpmTarget{800.0};
+    double m_rpmTarget{IDLE_RPM_TARGET};
     bool m_accelerating{false};
 };
 

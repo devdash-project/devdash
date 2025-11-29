@@ -65,6 +65,37 @@ constexpr int OUTPUT_STATUS_MIN_SIZE = 2;
 constexpr int DEVICE_STATUS_MIN_SIZE = 5;
 
 //=============================================================================
+// Byte Offset Constants (for payload parsing)
+//=============================================================================
+
+/// Firmware bugfix version byte offset
+constexpr int FW_BUGFIX_BYTE = 3;
+
+/// Voltage high byte offset (2-byte uint16)
+constexpr int VOLTAGE_BYTE_OFFSET = 2;
+
+/// Minimum size for voltage field (bytes 0-3)
+constexpr int MIN_SIZE_FOR_VOLTAGE = 4;
+
+/// Current/Load low byte offset (2-byte uint16 or 1-byte uint8)
+constexpr int CURRENT_LOW_BYTE_OFFSET = 4;
+
+/// Minimum size for low current/load field (bytes 0-5)
+constexpr int MIN_SIZE_FOR_CURRENT_LOW = 6;
+
+/// Current high byte offset (1-byte uint8)
+constexpr int CURRENT_HIGH_BYTE_OFFSET = 6;
+
+/// Minimum size for high current field (bytes 0-6)
+constexpr int MIN_SIZE_FOR_CURRENT_HIGH = 7;
+
+/// Status/Retry/Pin state byte offset
+constexpr int STATUS_RETRY_BYTE_OFFSET = 7;
+
+/// Minimum size for status/retry field (bytes 0-7)
+constexpr int MIN_SIZE_FOR_STATUS_RETRY = 8;
+
+//=============================================================================
 // Scaling Factors
 //=============================================================================
 
@@ -91,8 +122,11 @@ constexpr uint8_t STATE_BIT_MASK = 0x01;
 /// Firmware major version mask (bits 1-0 of byte 1)
 constexpr uint8_t FW_MAJOR_MASK = 0x03;
 
-/// Status nibble mask (bits 7-4)
+/// Status nibble mask (bits 3-0)
 constexpr uint8_t STATUS_NIBBLE_MASK = 0x0F;
+
+/// Bit shift for status nibble (bits 7-4)
+constexpr int STATUS_NIBBLE_SHIFT = 4;
 
 /// 25A retry count mask (bits 7-4 of byte 7)
 constexpr int RETRY_COUNT_25A_SHIFT = 4;
@@ -332,7 +366,7 @@ PD16Protocol::decodeDeviceStatus(const QByteArray& payload,
     std::vector<std::pair<QString, ChannelValue>> results;
 
     // Byte 0 bits 7-4: Status
-    uint8_t status = (static_cast<uint8_t>(payload[0]) >> 4) & STATUS_NIBBLE_MASK;
+    uint8_t status = (static_cast<uint8_t>(payload[0]) >> STATUS_NIBBLE_SHIFT) & STATUS_NIBBLE_MASK;
     results.emplace_back(
         devicePrefix + "_status",
         ChannelValue{static_cast<double>(status), "", true});
@@ -340,7 +374,7 @@ PD16Protocol::decodeDeviceStatus(const QByteArray& payload,
     // Firmware version from bytes 1-3
     uint8_t fwMajor = static_cast<uint8_t>(payload[1]) & FW_MAJOR_MASK;
     uint8_t fwMinor = static_cast<uint8_t>(payload[2]);
-    uint8_t fwBugfix = static_cast<uint8_t>(payload[3]);
+    uint8_t fwBugfix = static_cast<uint8_t>(payload[FW_BUGFIX_BYTE]);
 
     double fwVersion = fwMajor + (fwMinor / FW_MINOR_SCALE) + (fwBugfix / FW_BUGFIX_SCALE);
     results.emplace_back(
@@ -365,29 +399,29 @@ PD16Protocol::decodeOutput25AStatus(const QByteArray& payload, const QString& pr
     }
 
     // Bytes 2-3: Voltage (mV)
-    if (payload.size() >= 4) {
-        uint16_t voltageRaw = decodeUint16(payload, 2);
+    if (payload.size() >= MIN_SIZE_FOR_VOLTAGE) {
+        uint16_t voltageRaw = decodeUint16(payload, VOLTAGE_BYTE_OFFSET);
         double voltage = voltageRaw / MV_TO_V;
         results.emplace_back(prefix + "_voltage", ChannelValue{voltage, "V", true});
     }
 
     // Bytes 4-5: Low side current (mA)
-    if (payload.size() >= 6) {
-        uint16_t currentRaw = decodeUint16(payload, 4);
+    if (payload.size() >= MIN_SIZE_FOR_CURRENT_LOW) {
+        uint16_t currentRaw = decodeUint16(payload, CURRENT_LOW_BYTE_OFFSET);
         double current = currentRaw / MA_TO_A;
         results.emplace_back(prefix + "_currentLow", ChannelValue{current, "A", true});
     }
 
     // Byte 6: High side current (mA as uint8)
-    if (payload.size() >= 7) {
-        uint8_t currentRaw = static_cast<uint8_t>(payload[6]);
+    if (payload.size() >= MIN_SIZE_FOR_CURRENT_HIGH) {
+        uint8_t currentRaw = static_cast<uint8_t>(payload[CURRENT_HIGH_BYTE_OFFSET]);
         double current = currentRaw / MA_TO_A;
         results.emplace_back(prefix + "_currentHigh", ChannelValue{current, "A", true});
     }
 
     // Byte 7: Retry count (bits 7-4) and Pin state (bits 3-0)
-    if (payload.size() >= 8) {
-        uint8_t statusByte = static_cast<uint8_t>(payload[7]);
+    if (payload.size() >= MIN_SIZE_FOR_STATUS_RETRY) {
+        uint8_t statusByte = static_cast<uint8_t>(payload[STATUS_RETRY_BYTE_OFFSET]);
         uint8_t retryCount = (statusByte >> RETRY_COUNT_25A_SHIFT) & RETRY_COUNT_25A_MASK;
         uint8_t pinState = statusByte & STATUS_NIBBLE_MASK;
 
@@ -417,22 +451,22 @@ PD16Protocol::decodeOutput8AStatus(const QByteArray& payload, const QString& pre
     }
 
     // Bytes 2-3: Voltage (mV)
-    if (payload.size() >= 4) {
-        uint16_t voltageRaw = decodeUint16(payload, 2);
+    if (payload.size() >= MIN_SIZE_FOR_VOLTAGE) {
+        uint16_t voltageRaw = decodeUint16(payload, VOLTAGE_BYTE_OFFSET);
         double voltage = voltageRaw / MV_TO_V;
         results.emplace_back(prefix + "_voltage", ChannelValue{voltage, "V", true});
     }
 
     // Bytes 4-5: Current (mA)
-    if (payload.size() >= 6) {
-        uint16_t currentRaw = decodeUint16(payload, 4);
+    if (payload.size() >= MIN_SIZE_FOR_CURRENT_LOW) {
+        uint16_t currentRaw = decodeUint16(payload, CURRENT_LOW_BYTE_OFFSET);
         double current = currentRaw / MA_TO_A;
         results.emplace_back(prefix + "_current", ChannelValue{current, "A", true});
     }
 
     // Byte 6: Load %
-    if (payload.size() >= 7) {
-        uint8_t load = static_cast<uint8_t>(payload[6]);
+    if (payload.size() >= MIN_SIZE_FOR_CURRENT_HIGH) {
+        uint8_t load = static_cast<uint8_t>(payload[CURRENT_HIGH_BYTE_OFFSET]);
         results.emplace_back(prefix + "_load", ChannelValue{static_cast<double>(load), "%", true});
     }
 
@@ -450,22 +484,22 @@ PD16Protocol::decodeSpeedPulseStatus(const QByteArray& payload, const QString& p
     }
 
     // Bytes 2-3: Voltage (mV)
-    if (payload.size() >= 4) {
-        uint16_t voltageRaw = decodeUint16(payload, 2);
+    if (payload.size() >= MIN_SIZE_FOR_VOLTAGE) {
+        uint16_t voltageRaw = decodeUint16(payload, VOLTAGE_BYTE_OFFSET);
         double voltage = voltageRaw / MV_TO_V;
         results.emplace_back(prefix + "_voltage", ChannelValue{voltage, "V", true});
     }
 
     // Bytes 4-5: Duty cycle (0.1% resolution)
-    if (payload.size() >= 6) {
-        uint16_t dutyRaw = decodeUint16(payload, 4);
+    if (payload.size() >= MIN_SIZE_FOR_CURRENT_LOW) {
+        uint16_t dutyRaw = decodeUint16(payload, CURRENT_LOW_BYTE_OFFSET);
         double duty = dutyRaw / DUTY_CYCLE_SCALE;
         results.emplace_back(prefix + "_dutyCycle", ChannelValue{duty, "%", true});
     }
 
     // Bytes 6-7: Frequency (Hz)
     if (payload.size() >= SPEED_PULSE_FULL_SIZE) {
-        uint16_t freq = decodeUint16(payload, 6);
+        uint16_t freq = decodeUint16(payload, CURRENT_HIGH_BYTE_OFFSET);
         results.emplace_back(prefix + "_frequency",
                              ChannelValue{static_cast<double>(freq), "Hz", true});
     }
@@ -484,8 +518,8 @@ PD16Protocol::decodeAnalogVoltageStatus(const QByteArray& payload, const QString
     }
 
     // Bytes 2-3: Voltage (mV)
-    if (payload.size() >= 4) {
-        uint16_t voltageRaw = decodeUint16(payload, 2);
+    if (payload.size() >= MIN_SIZE_FOR_VOLTAGE) {
+        uint16_t voltageRaw = decodeUint16(payload, VOLTAGE_BYTE_OFFSET);
         double voltage = voltageRaw / MV_TO_V;
         results.emplace_back(prefix + "_voltage", ChannelValue{voltage, "V", true});
     }

@@ -8,7 +8,22 @@
       "Bash(cmake --preset dev:*)",
       "Bash(apt list:*)",
       "Bash(cmake:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(gh run view:*)",
+      "Bash(apt-cache search:*)",
+      "Bash(act:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(gh run:*)",
+      "Bash(sudo docker ps:*)",
+      "Bash(jobs)",
+      "Bash(sudo act:*)",
+      "Bash(tee:*)",
+      "Bash(mkdir:*)",
+      "Bash(sudo ./scripts/test-ci-local:*)"
     ],
     "deny": [],
     "ask": []
