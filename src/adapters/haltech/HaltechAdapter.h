@@ -24,6 +24,12 @@ class HaltechAdapter : public IProtocolAdapter {
     explicit HaltechAdapter(const QJsonObject& config, QObject* parent = nullptr);
     ~HaltechAdapter() override;
 
+    // QObject-based classes are not copyable or movable
+    HaltechAdapter(const HaltechAdapter&) = delete;
+    HaltechAdapter& operator=(const HaltechAdapter&) = delete;
+    HaltechAdapter(HaltechAdapter&&) = delete;
+    HaltechAdapter& operator=(HaltechAdapter&&) = delete;
+
     // IProtocolAdapter interface
     [[nodiscard]] bool start() override;
     void stop() override;
@@ -39,7 +45,7 @@ class HaltechAdapter : public IProtocolAdapter {
 
     void processFrame(const QCanBusFrame& frame);
 
-  private:
+  private:  // NOLINT(readability-redundant-access-specifiers) - Required for MOC
     QString m_interface;
     std::unique_ptr<QCanBusDevice> m_canDevice;
     HaltechProtocol m_protocol;

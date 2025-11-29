@@ -17,6 +17,9 @@ namespace devdash {
  */
 class ProtocolAdapterFactory {
   public:
+    // Static-only class - prevent instantiation
+    ProtocolAdapterFactory() = delete;
+
     /**
      * @brief Create an adapter based on profile configuration
      * @param profilePath Path to the JSON profile file
@@ -41,9 +44,6 @@ class ProtocolAdapterFactory {
      */
     [[nodiscard]] static std::unique_ptr<IProtocolAdapter> create(const QString& adapterType,
                                                                   const QJsonObject& config);
-
-  private:
-    ProtocolAdapterFactory() = delete;
 };
 
 } // namespace devdash

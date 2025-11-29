@@ -25,12 +25,21 @@
             "extensions": [
                 "llvm-vs-code-extensions.vscode-clangd",
                 "ms-vscode.cmake-tools",
+                "twxs.cmake",
                 "theqtcompany.qt",
+                "theqtcompany.qt-core",
+                "theqtcompany.qt-cpp",
+                "theqtcompany.qt-qml",
+                "theqtcompany.qt-ui",
+                "tonka3000.qtvsctools",
                 "bbenoist.qml",
                 "cschlosser.doxdocgen",
                 "eamodio.gitlens",
                 "editorconfig.editorconfig",
-                "usernamehw.errorlens"
+                "usernamehw.errorlens",
+                "gruntfuggly.todo-tree",
+                "ajshort.include-autocomplete",
+                "vadimcn.vscode-lldb"
             ],
             "settings": {
                 "cmake.configureOnOpen": true,

@@ -135,9 +135,9 @@ QString HaltechAdapter::adapterName() const {
 
 void HaltechAdapter::onFramesReceived() {
     while (m_canDevice->framesAvailable() > 0) {
-        const auto frame = m_canDevice->readFrame();
-        if (frame.isValid()) {
-            processFrame(frame);
+        const QCanBusFrame receivedFrame = m_canDevice->readFrame();
+        if (receivedFrame.isValid()) {
+            processFrame(receivedFrame);
         }
     }
 }

@@ -52,7 +52,7 @@ using AdapterCreator = std::function<std::unique_ptr<IProtocolAdapter>(const QJs
  * No switch statements needed - fully data-driven.
  */
 const QHash<QString, AdapterCreator>& getAdapterCreators() {
-    static const QHash<QString, AdapterCreator> creators = {
+    static const QHash<QString, AdapterCreator> ADAPTER_CREATORS = {
         {ADAPTER_TYPE_HALTECH,
          [](const QJsonObject& config) { return std::make_unique<HaltechAdapter>(config); }},
         {ADAPTER_TYPE_SIMULATOR,
@@ -65,7 +65,7 @@ const QHash<QString, AdapterCreator>& getAdapterCreators() {
         //     }
         // },
     };
-    return creators;
+    return ADAPTER_CREATORS;
 }
 
 } // anonymous namespace
