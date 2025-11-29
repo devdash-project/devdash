@@ -1,0 +1,10 @@
+#!/bin/bash
+# Build the project
+# Usage: ./scripts/build [preset]
+
+set -e
+
+PRESET="${1:-dev}"
+
+echo "Building with preset: $PRESET"
+cmake --build "build/$PRESET" "$@"

@@ -1,0 +1,13 @@
+#!/bin/bash
+# Format code with clang-format
+# Usage: ./scripts/format [check]
+
+set -e
+
+if [ "$1" = "check" ]; then
+    echo "Checking code formatting..."
+    cmake --build build/dev --target format-check
+else
+    echo "Formatting code..."
+    cmake --build build/dev --target format-fix
+fi

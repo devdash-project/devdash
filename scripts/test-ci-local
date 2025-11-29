@@ -1,0 +1,35 @@
+#!/bin/bash
+# Test CI workflows locally using act (GitHub Actions runner)
+# Usage: ./scripts/test-ci-local [job-name]
+
+set -e
+
+# Check if act is installed
+if ! command -v act &> /dev/null; then
+    echo "Error: 'act' is not installed"
+    echo "Please rebuild the dev container to get act"
+    exit 1
+fi
+
+# Check if Docker is accessible
+if ! docker ps &> /dev/null; then
+    echo "Error: Cannot access Docker daemon"
+    echo "Try running with sudo: sudo ./scripts/test-ci-local"
+    exit 1
+fi
+
+JOB="${1:-}"
+
+if [ -z "$JOB" ]; then
+    echo "Available CI jobs:"
+    act --list
+    echo ""
+    echo "Usage: ./scripts/test-ci-local [job-name]"
+    echo "Example: ./scripts/test-ci-local build"
+    echo "         ./scripts/test-ci-local lint"
+    echo "         ./scripts/test-ci-local coverage"
+    exit 0
+fi
+
+echo "Running CI job '$JOB' locally with act..."
+exec act -j "$JOB" --rm

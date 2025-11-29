@@ -35,6 +35,32 @@ cmake --build build/dev --target docs
 # Output: build/dev/docs/html/index.html
 ```
 
+## Helper Scripts (like npm scripts)
+
+For convenience, common tasks are available as shell scripts in `scripts/`:
+
+```bash
+# Build the project
+./scripts/build [preset]          # Default: dev
+
+# Run tests
+./scripts/test [preset]            # Default: dev
+
+# Lint code
+./scripts/lint                     # Run clang-tidy
+
+# Format code
+./scripts/format                   # Fix formatting
+./scripts/format check             # Check formatting only
+
+# Test CI locally (requires Docker)
+sudo ./scripts/test-ci-local       # List available jobs
+sudo ./scripts/test-ci-local build # Test build job locally
+sudo ./scripts/test-ci-local lint  # Test lint job locally
+```
+
+**Tip:** Testing CI jobs locally with `act` gives you a tight feedback loop - catch issues before pushing to GitHub!
+
 ## Architecture
 
 **Single app, dual display.** One Qt application manages both instrument cluster and head unit windows.

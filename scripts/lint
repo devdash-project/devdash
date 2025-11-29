@@ -1,0 +1,8 @@
+#!/bin/bash
+# Run clang-tidy linting
+# Usage: ./scripts/lint
+
+set -e
+
+echo "Running clang-tidy..."
+cmake --build build/dev --target clang-tidy

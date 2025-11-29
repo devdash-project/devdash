@@ -1,0 +1,10 @@
+#!/bin/bash
+# Run tests
+# Usage: ./scripts/test [preset]
+
+set -e
+
+PRESET="${1:-dev}"
+
+echo "Running tests for preset: $PRESET"
+ctest --test-dir "build/$PRESET" --output-on-failure
