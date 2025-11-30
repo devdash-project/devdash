@@ -18,13 +18,22 @@ shift || true
 EXTRA_ARGS="$@"
 
 INTERFACE="vcan0"
-MOCK="/opt/haltech-venv/bin/haltech-mock"
 PROFILE="profiles/haltech-vcan.json"
 
-# Check if haltech-mock is available
-if [ ! -x "$MOCK" ]; then
-    echo "Error: haltech-mock not found at $MOCK"
-    echo "Please install haltech-mock: pip install haltech-mock"
+# Find haltech-mock: check PATH first, then known locations
+if command -v haltech-mock &>/dev/null; then
+    MOCK="$(command -v haltech-mock)"
+elif [ -x "/opt/haltech-venv/bin/haltech-mock" ]; then
+    MOCK="/opt/haltech-venv/bin/haltech-mock"
+elif [ -x "$HOME/.venv/devdash/bin/haltech-mock" ]; then
+    MOCK="$HOME/.venv/devdash/bin/haltech-mock"
+else
+    echo "Error: haltech-mock not found"
+    echo "Please install haltech-mock:"
+    echo "  pip install haltech-mock"
+    echo ""
+    echo "Or if using a venv:"
+    echo "  source ~/.venv/devdash/bin/activate && pip install haltech-mock"
     exit 1
 fi
 

@@ -42,7 +42,7 @@ Create `src/adapters/yourecuname/YourEcuAdapter.h`:
 ```cpp
 #pragma once
 
-#include "core/IProtocolAdapter.h"
+#include "core/interfaces/IProtocolAdapter.h"
 #include <QObject>
 #include <QString>
 #include <QHash>

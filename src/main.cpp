@@ -25,7 +25,10 @@
 
 #include "adapters/ProtocolAdapterFactory.h"
 #include "cluster/ClusterWindow.h"
-#include "core/DataBroker.h"
+#include "core/broker/DataBroker.h"
+#include "core/devtools/DevToolsServer.h"
+#include "core/logging/LogCategories.h"
+#include "core/logging/LogManager.h"
 #include "headunit/HeadUnitWindow.h"
 
 #include <QCommandLineOption>
@@ -48,9 +51,6 @@ constexpr const char* APP_DESCRIPTION = "Modular automotive dashboard framework"
 //=============================================================================
 // Exit Codes
 //=============================================================================
-
-/// Successful execution
-constexpr int EXIT_SUCCESS_CODE = 0;
 
 /// Failed to create adapter from profile
 constexpr int EXIT_ADAPTER_FAILED = 1;
@@ -89,6 +89,14 @@ void setupCommandLineOptions(QCommandLineParser& parser) {
     parser.addOption({"cluster-only", "Only show cluster window"});
 
     parser.addOption({"headunit-only", "Only show head unit window"});
+
+    // Logging options
+    parser.addOption({{"l", "log-level"},
+                      "Set minimum log level (debug, info, warning, critical)",
+                      "level",
+                      "info"});
+
+    parser.addOption({"log-file", "Enable file logging to specified path", "path"});
 }
 
 /**
@@ -160,6 +168,9 @@ int main(int argc, char* argv[]) {
     QGuiApplication::setApplicationVersion(APP_VERSION);
     QGuiApplication::setOrganizationName(APP_ORGANIZATION);
 
+    // Initialize logging system
+    devdash::LogManager::instance().initialize();
+
     // Parse command line
     QCommandLineParser parser;
     setupCommandLineOptions(parser);
@@ -169,8 +180,36 @@ int main(int argc, char* argv[]) {
         return EXIT_INVALID_ARGS;
     }
 
+    // Apply logging configuration from command line
+    QString levelStr = parser.value("log-level");
+    if (levelStr == "debug") {
+        devdash::LogManager::instance().setLogLevel(QtDebugMsg);
+    } else if (levelStr == "info") {
+        devdash::LogManager::instance().setLogLevel(QtInfoMsg);
+    } else if (levelStr == "warning") {
+        devdash::LogManager::instance().setLogLevel(QtWarningMsg);
+    } else if (levelStr == "critical") {
+        devdash::LogManager::instance().setLogLevel(QtCriticalMsg);
+    } else {
+        qCWarning(devdash::logApp) << "Invalid log level:" << levelStr << "- using info";
+        devdash::LogManager::instance().setLogLevel(QtInfoMsg);
+    }
+
+    if (parser.isSet("log-file")) {
+        devdash::LogManager::instance().setFileOutput(parser.value("log-file"));
+    }
+
+    qCInfo(devdash::logApp) << "DevDash starting - version" << APP_VERSION;
+
     // Create DataBroker and adapter
     auto dataBroker = std::make_unique<devdash::DataBroker>();
+
+    // Load profile into DataBroker for channel mappings
+    const QString profilePath = parser.value("profile");
+    if (!dataBroker->loadProfile(profilePath)) {
+        qCritical() << "Failed to load profile into DataBroker:" << profilePath;
+        return EXIT_ADAPTER_FAILED;
+    }
 
     auto adapter = createAdapter(parser);
     if (!adapter) {
@@ -196,10 +235,30 @@ int main(int argc, char* argv[]) {
         headunitWindow->show(screen);
     }
 
-    // Start data acquisition
-    if (!dataBroker->start()) {
-        qWarning() << "Failed to start data broker, continuing without live data";
+    // Start DevTools HTTP server for Claude Code MCP integration
+    auto devtools = std::make_unique<devdash::DevToolsServer>(dataBroker.get());
+
+    if (clusterWindow) {
+        devtools->registerWindow("cluster", clusterWindow->window());
+    }
+    if (headunitWindow) {
+        devtools->registerWindow("headunit", headunitWindow->window());
     }
 
-    return QGuiApplication::exec();
+    if (!devtools->start(18080)) {
+        qWarning() << "Failed to start DevTools server (MCP integration disabled)";
+    }
+
+    // Start data acquisition
+    if (!dataBroker->start()) {
+        qCWarning(devdash::logBroker) << "Failed to start data broker, continuing without live data";
+    }
+
+    int result = QGuiApplication::exec();
+
+    // Shutdown logging system
+    qCInfo(devdash::logApp) << "DevDash shutting down";
+    devdash::LogManager::instance().shutdown();
+
+    return result;
 }

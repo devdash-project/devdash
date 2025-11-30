@@ -28,50 +28,73 @@ ClusterWindow / HeadUnitWindow (QML-based UIs)
 
 ## Quick Start
 
-### Prerequisites
+### Development with VS Code Dev Container (Recommended)
 
-- CMake 3.25+
-- Qt 6.5+ (Core, Quick, Qml, Multimedia, SerialBus)
-- C++20 compiler (GCC 12+, Clang 15+)
-- Linux with SocketCAN support (for real CAN bus)
-
-### Build
+The fastest way to get started:
 
 ```bash
-# Configure
-cmake --preset dev
+# Clone the repository
+git clone https://github.com/yourorg/devdash.git
+cd devdash
 
+# Open in VS Code
+code .
+```
+
+In VS Code:
+1. Press **Cmd+Shift+P** (Mac) or **Ctrl+Shift+P** (Windows/Linux)
+2. Type: **"Dev Containers: Reopen in Container"**
+3. Press **Enter**
+
+The dev container includes all dependencies (Qt 6, CMake, compilers, tools).
+
+**Setup virtual CAN (one-time):**
+
+See the [Development Setup Guide](docs/00-getting-started/development-setup.md) for platform-specific vcan0 setup:
+- **macOS**: Create vcan0 inside Docker Desktop VM
+- **Linux**: Native vcan0 setup
+- **Windows**: vcan0 in WSL2
+
+**Build and test:**
+
+```bash
 # Build
 cmake --build build/dev
 
 # Run tests
-ctest --preset dev
+ctest --test-dir build/dev
+
+# Run with realistic mock data
+./scripts/run-with-mock idle
 ```
 
-### Run
+### Native Build (Without Docker)
+
+**Prerequisites:**
+- CMake 3.25+
+- Qt 6.5+ (Core, Quick, Qml, Multimedia, SerialBus)
+- C++20 compiler (GCC 12+, Clang 15+)
+- Linux with SocketCAN support
+
+**Build:**
 
 ```bash
-# With simulator (default)
-./build/dev/devdash
+cmake --preset dev
+cmake --build build/dev
+ctest --test-dir build/dev
+```
 
-# With Haltech ECU
+**Run:**
+
+```bash
+# With realistic mock data (requires haltech-mock + vcan0)
+./scripts/run-with-mock idle
+
+# With real Haltech ECU
 ./build/dev/devdash --profile profiles/example-haltech.json
 
 # Cluster only
-./build/dev/devdash --cluster-only
-
-# Head unit only
-./build/dev/devdash --headunit-only
-```
-
-### Virtual CAN for Testing
-
-```bash
-# Setup virtual CAN interface
-./scripts/setup-vcan.sh
-
-# Send test frames
-cansend vcan0 360#0DAC01F400000000  # RPM=3500, TPS=50%
+./build/dev/devdash --cluster-only --profile profiles/haltech-vcan.json
 ```
 
 ## Project Structure
@@ -102,23 +125,24 @@ See `profiles/example-simulator.json` for a complete example.
 
 ## Development
 
+**New to the project?** See the [Development Setup Guide](docs/00-getting-started/development-setup.md) for detailed environment setup instructions.
+
 ### Code Style
 
 - C++20 standard
 - Qt/QML naming conventions
-- clang-format for formatting
+- clang-format for formatting (auto-applied on save in dev container)
 - clang-tidy for static analysis
 
 ```bash
 # Format code
-./scripts/format-all.sh
+cmake --build build/dev --target format-fix
 
 # Check formatting
-./scripts/format-all.sh --check
+cmake --build build/dev --target format-check
 
-# Run with clang-tidy
-cmake --preset ci
-cmake --build build/ci
+# Run clang-tidy
+cmake --build build/dev --target clang-tidy
 ```
 
 ### Adding a New Protocol Adapter

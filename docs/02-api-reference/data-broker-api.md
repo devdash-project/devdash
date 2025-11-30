@@ -55,7 +55,7 @@ Complete list of all properties exposed to QML:
 Until this document is complete, refer to:
 
 - **DataBroker Architecture:** [DataBroker](../01-architecture/data-broker.md)
-- **Source Code:** `src/core/DataBroker.h`
+- **Source Code:** `src/core/broker/DataBroker.h`
 - **Core Interfaces:** [Core Interfaces](core-interfaces.md)
 
 ## TODO

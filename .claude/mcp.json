@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "devdash": {
+      "command": "/home/dev/.venv/devdash/bin/python",
+      "args": ["-m", "devdash_mcp"],
+      "cwd": "/home/dev/Projects/devdash/tools/mcp"
+    }
+  }
+}

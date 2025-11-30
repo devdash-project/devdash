@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/IProtocolAdapter.h"
+#include "core/interfaces/IProtocolAdapter.h"
 
 #include <QCanBusFrame>
 #include <QHash>
@@ -117,6 +117,25 @@ public:
      * @return List of frame IDs that can be decoded
      */
     [[nodiscard]] QList<uint32_t> frameIds() const { return m_frameDefinitions.keys(); }
+
+    /**
+     * @brief Get set of all available channel names in the protocol.
+     *
+     * Collects channel names from all loaded frame definitions.
+     * Used by tests to verify profile mappings reference valid channels.
+     *
+     * @return Set of channel names exactly as they appear in the protocol JSON
+     * @note Channel names are NOT camelCased - they are the raw protocol names
+     *
+     * @example
+     * @code
+     * HaltechProtocol protocol;
+     * protocol.loadDefinition("haltech-v2.35.json");
+     * auto channels = protocol.availableChannels();
+     * // Returns: {"RPM", "TPS", "MAP", "ECT", ...}
+     * @endcode
+     */
+    [[nodiscard]] QSet<QString> availableChannels() const;
 
     /**
      * @brief Decode a CAN frame into channel values.

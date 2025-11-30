@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Window
 import QtQuick.Layouts
-import DevDash.Cluster
 
 Window {
     id: root
@@ -15,22 +14,36 @@ Window {
     // Fullscreen on embedded
     visibility: Qt.platform.os === "linux" ? Window.FullScreen : Window.Windowed
 
+    // Component definitions for gauges
+    Component {
+        id: tachometerComponent
+        Item {
+            Loader {
+                anchors.fill: parent
+                source: "gauges/Tachometer.qml"
+            }
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 40
 
         // Left tachometer
-        Tachometer {
+        Loader {
             id: tachometer
             Layout.preferredWidth: 400
             Layout.preferredHeight: 400
             Layout.alignment: Qt.AlignVCenter
+            source: "gauges/Tachometer.qml"
 
-            value: dataBroker ? dataBroker.rpm : 0
-            maxValue: 8000
-            redlineStart: 6500
-            label: "RPM"
+            onLoaded: {
+                item.value = Qt.binding(function() { return dataBroker ? dataBroker.rpm : 0 })
+                item.maxValue = 8000
+                item.redlineStart = 6500
+                item.label = "RPM"
+            }
         }
 
         // Center info panel
@@ -142,16 +155,19 @@ Window {
         }
 
         // Right - throttle/boost gauge (placeholder)
-        Tachometer {
+        Loader {
             id: throttleGauge
             Layout.preferredWidth: 400
             Layout.preferredHeight: 400
             Layout.alignment: Qt.AlignVCenter
+            source: "gauges/Tachometer.qml"
 
-            value: dataBroker ? dataBroker.manifoldPressure : 0
-            maxValue: 250
-            redlineStart: 200
-            label: "MAP kPa"
+            onLoaded: {
+                item.value = Qt.binding(function() { return dataBroker ? dataBroker.manifoldPressure : 0 })
+                item.maxValue = 250
+                item.redlineStart = 200
+                item.label = "MAP kPa"
+            }
         }
     }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/IProtocolAdapter.h"
+#include "core/interfaces/IProtocolAdapter.h"
 
 #include <QCanBusFrame>
 #include <QHash>

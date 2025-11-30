@@ -1,0 +1,243 @@
+{
+  "$schema": "../schemas/channels.schema.json",
+  "version": "1.0.0",
+  "channels": {
+    "rpm": {
+      "name": "Engine RPM",
+      "description": "Engine revolutions per minute",
+      "type": "double",
+      "unit": "rpm",
+      "category": "engine",
+      "range": {
+        "min": 0,
+        "max": 9000
+      },
+      "warningThresholds": {
+        "high": 7500,
+        "critical": 8500
+      },
+      "updateFrequency": {
+        "hz": 50,
+        "description": "50Hz (CAN)"
+      },
+      "precision": 0,
+      "format": "{:.0f}"
+    },
+    "coolantTemp": {
+      "name": "Coolant Temperature",
+      "description": "Engine coolant temperature",
+      "type": "double",
+      "unit": "K",
+      "category": "temperature",
+      "range": {
+        "min": 253,
+        "max": 423
+      },
+      "warningThresholds": {
+        "high": 378,
+        "critical": 393
+      },
+      "updateFrequency": {
+        "hz": 10,
+        "description": "10Hz"
+      },
+      "precision": 1
+    },
+    "oilPressure": {
+      "name": "Oil Pressure",
+      "description": "Engine oil pressure",
+      "type": "double",
+      "unit": "kPa",
+      "category": "pressure",
+      "range": {
+        "min": 0,
+        "max": 1000
+      },
+      "warningThresholds": {
+        "low": 100,
+        "critical": 50
+      },
+      "updateFrequency": {
+        "hz": 10,
+        "description": "10Hz"
+      },
+      "precision": 1
+    },
+    "throttlePosition": {
+      "name": "Throttle Position",
+      "description": "Throttle pedal position as percentage",
+      "type": "double",
+      "unit": "%",
+      "category": "engine",
+      "range": {
+        "min": 0,
+        "max": 100
+      },
+      "updateFrequency": {
+        "hz": 50,
+        "description": "50Hz (CAN)"
+      },
+      "precision": 1,
+      "format": "{:.1f}%"
+    },
+    "vehicleSpeed": {
+      "name": "Vehicle Speed",
+      "description": "Current vehicle speed",
+      "type": "double",
+      "unit": "km/h",
+      "category": "speed",
+      "range": {
+        "min": 0,
+        "max": 350
+      },
+      "updateFrequency": {
+        "hz": 20,
+        "description": "20Hz"
+      },
+      "precision": 1
+    },
+    "gear": {
+      "name": "Current Gear",
+      "description": "Currently selected gear",
+      "type": "int",
+      "unit": "",
+      "category": "transmission",
+      "range": {
+        "min": -1,
+        "max": 6
+      },
+      "updateFrequency": {
+        "hz": 10,
+        "description": "10Hz (on change)"
+      },
+      "precision": 0
+    },
+    "batteryVoltage": {
+      "name": "Battery Voltage",
+      "description": "Main battery voltage",
+      "type": "double",
+      "unit": "V",
+      "category": "electrical",
+      "range": {
+        "min": 0,
+        "max": 18
+      },
+      "warningThresholds": {
+        "low": 11.5,
+        "critical": 10.5
+      },
+      "updateFrequency": {
+        "hz": 1,
+        "description": "1Hz"
+      },
+      "precision": 2
+    },
+    "fuelLevel": {
+      "name": "Fuel Level",
+      "description": "Fuel level as percentage of tank capacity",
+      "type": "double",
+      "unit": "%",
+      "category": "fluid",
+      "range": {
+        "min": 0,
+        "max": 100
+      },
+      "warningThresholds": {
+        "low": 15,
+        "critical": 5
+      },
+      "updateFrequency": {
+        "hz": 1,
+        "description": "1Hz"
+      },
+      "precision": 0
+    },
+    "pitchAngle": {
+      "name": "Pitch Angle",
+      "description": "Vehicle pitch angle from inclinometer",
+      "type": "double",
+      "unit": "deg",
+      "category": "position",
+      "range": {
+        "min": -90,
+        "max": 90
+      },
+      "updateFrequency": {
+        "hz": 30,
+        "description": "30Hz (I2C)"
+      },
+      "precision": 1
+    },
+    "rollAngle": {
+      "name": "Roll Angle",
+      "description": "Vehicle roll angle from inclinometer",
+      "type": "double",
+      "unit": "deg",
+      "category": "position",
+      "range": {
+        "min": -90,
+        "max": 90
+      },
+      "updateFrequency": {
+        "hz": 30,
+        "description": "30Hz (I2C)"
+      },
+      "precision": 1
+    }
+  },
+  "dataSources": [
+    {
+      "id": "haltech_can",
+      "type": "can",
+      "enabled": true,
+      "config": {
+        "interface": "vcan0",
+        "protocol": "protocols/haltech/haltech-can-protocol-v2.35.json",
+        "baudRate": 1000000
+      },
+      "priority": 10,
+      "providedChannels": [
+        "rpm",
+        "coolantTemp",
+        "oilPressure",
+        "throttlePosition",
+        "vehicleSpeed",
+        "gear",
+        "batteryVoltage",
+        "fuelLevel"
+      ]
+    },
+    {
+      "id": "inclinometer_i2c",
+      "type": "i2c",
+      "enabled": true,
+      "config": {
+        "interface": "/dev/i2c-1",
+        "address": "0x68"
+      },
+      "priority": 5,
+      "providedChannels": [
+        "pitchAngle",
+        "rollAngle"
+      ]
+    }
+  ],
+  "channelMappings": {
+    "ECT": "coolantTemp",
+    "TPS": "throttlePosition",
+    "RPM": "rpm",
+    "OilPres": "oilPressure",
+    "Speed": "vehicleSpeed",
+    "Gear": "gear",
+    "Batt": "batteryVoltage",
+    "Fuel%": "fuelLevel"
+  },
+  "userPreferences": {
+    "temperature": "C",
+    "pressure": "psi",
+    "speed": "mph",
+    "distance": "mi",
+    "volume": "gal",
+    "angle": "deg"
+  }
+}

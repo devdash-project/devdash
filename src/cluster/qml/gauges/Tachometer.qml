@@ -32,6 +32,7 @@ Item {
 
     // Gauge arc background
     Shape {
+        id: bgShape
         anchors.centerIn: parent
         width: parent.width * 0.8
         height: parent.height * 0.8
@@ -43,10 +44,10 @@ Item {
             capStyle: ShapePath.RoundCap
 
             PathAngleArc {
-                centerX: parent.width / 2
-                centerY: parent.height / 2
-                radiusX: parent.width / 2 - 10
-                radiusY: parent.height / 2 - 10
+                centerX: bgShape.width / 2
+                centerY: bgShape.height / 2
+                radiusX: bgShape.width / 2 - 10
+                radiusY: bgShape.height / 2 - 10
                 startAngle: root.startAngle
                 sweepAngle: root.sweepAngle
             }
@@ -55,6 +56,7 @@ Item {
 
     // Redline arc
     Shape {
+        id: redlineShape
         anchors.centerIn: parent
         width: parent.width * 0.8
         height: parent.height * 0.8
@@ -66,10 +68,10 @@ Item {
             capStyle: ShapePath.RoundCap
 
             PathAngleArc {
-                centerX: parent.width / 2
-                centerY: parent.height / 2
-                radiusX: parent.width / 2 - 10
-                radiusY: parent.height / 2 - 10
+                centerX: redlineShape.width / 2
+                centerY: redlineShape.height / 2
+                radiusX: redlineShape.width / 2 - 10
+                radiusY: redlineShape.height / 2 - 10
                 startAngle: root.startAngle + (root.redlineStart - root.minValue) / (root.maxValue - root.minValue) * root.sweepAngle
                 sweepAngle: root.sweepAngle - (root.redlineStart - root.minValue) / (root.maxValue - root.minValue) * root.sweepAngle
             }
@@ -78,6 +80,7 @@ Item {
 
     // Value arc
     Shape {
+        id: valueShape
         anchors.centerIn: parent
         width: parent.width * 0.8
         height: parent.height * 0.8
@@ -89,17 +92,17 @@ Item {
             capStyle: ShapePath.RoundCap
 
             PathAngleArc {
-                centerX: parent.width / 2
-                centerY: parent.height / 2
-                radiusX: parent.width / 2 - 10
-                radiusY: parent.height / 2 - 10
+                centerX: valueShape.width / 2
+                centerY: valueShape.height / 2
+                radiusX: valueShape.width / 2 - 10
+                radiusY: valueShape.height / 2 - 10
                 startAngle: root.startAngle
                 sweepAngle: Math.max(0, (root.value - root.minValue) / (root.maxValue - root.minValue) * root.sweepAngle)
             }
-        }
 
-        Behavior on ShapePath.strokeColor {
-            ColorAnimation { duration: 200 }
+            Behavior on strokeColor {
+                ColorAnimation { duration: 200 }
+            }
         }
     }
 

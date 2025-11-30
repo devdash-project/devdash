@@ -1,7 +1,7 @@
 #pragma once
 
 #include "HaltechProtocol.h"
-#include "core/IProtocolAdapter.h"
+#include "core/interfaces/IProtocolAdapter.h"
 
 #include <QCanBus>
 #include <QCanBusDevice>

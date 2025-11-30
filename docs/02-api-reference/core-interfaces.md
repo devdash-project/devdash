@@ -4,7 +4,7 @@ This document describes the core C++ interfaces in /dev/dash.
 
 ## IProtocolAdapter
 
-**Header:** `src/core/IProtocolAdapter.h`
+**Header:** `src/core/interfaces/IProtocolAdapter.h`
 
 The `IProtocolAdapter` interface is the cornerstone of /dev/dash's extensibility. All protocol adapters (Haltech, OBD-II, Simulator, etc.) implement this interface.
 
@@ -380,7 +380,7 @@ connect(adapter.get(), &IProtocolAdapter::errorOccurred,
 
 ## ChannelValue Struct
 
-**Header:** `src/core/IProtocolAdapter.h`
+**Header:** `src/core/interfaces/IProtocolAdapter.h`
 
 Represents a channel's current value with metadata.
 
@@ -521,7 +521,7 @@ See [HaltechAdapter](../../src/adapters/haltech/HaltechAdapter.h) for a complete
 **Minimal example:**
 
 ```cpp
-#include "core/IProtocolAdapter.h"
+#include "core/interfaces/IProtocolAdapter.h"
 
 class MyAdapter : public IProtocolAdapter {
     Q_OBJECT

@@ -134,8 +134,12 @@ QString HaltechAdapter::adapterName() const {
 //=============================================================================
 
 void HaltechAdapter::onFramesReceived() {
+    qDebug() << "HaltechAdapter: onFramesReceived() called, frames available:"
+             << m_canDevice->framesAvailable();
     while (m_canDevice->framesAvailable() > 0) {
         const QCanBusFrame receivedFrame = m_canDevice->readFrame();
+        qDebug() << "HaltechAdapter: Received frame ID:" << Qt::hex << receivedFrame.frameId()
+                 << "valid:" << receivedFrame.isValid();
         if (receivedFrame.isValid()) {
             processFrame(receivedFrame);
         }
@@ -165,9 +169,14 @@ void HaltechAdapter::onStateChanged(QCanBusDevice::CanBusDeviceState state) {
 //=============================================================================
 
 void HaltechAdapter::processFrame(const QCanBusFrame& frame) {
+    qDebug() << "HaltechAdapter: Processing frame ID:" << Qt::hex << frame.frameId();
     auto decoded = m_protocol.decode(frame);
 
+    qDebug() << "HaltechAdapter: Decoded" << decoded.size() << "channels from frame" << Qt::hex
+             << frame.frameId();
     for (const auto& [channelName, value] : decoded) {
+        qDebug() << "HaltechAdapter: Channel:" << channelName << "=" << value.value
+                 << value.unit << "(valid:" << value.valid << ")";
         m_channels[channelName] = value;
         emit channelUpdated(channelName, value);
     }

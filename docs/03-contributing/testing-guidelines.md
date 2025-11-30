@@ -58,8 +58,8 @@ Tests mirror the source structure:
 src/adapters/haltech/HaltechProtocol.cpp
 → tests/adapters/haltech/test_haltech_protocol.cpp
 
-src/core/DataBroker.cpp
-→ tests/core/test_data_broker.cpp
+src/core/broker/DataBroker.cpp
+→ tests/core/broker/test_data_broker.cpp
 ```
 
 ### Test Naming

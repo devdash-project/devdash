@@ -1,10 +1,49 @@
 #!/bin/bash
 # Build the project
-# Usage: ./scripts/build [preset]
+# Usage: ./scripts/build [preset] [--clean]
+#
+# Options:
+#   --clean    Remove stale QML generated files before building
+#              (use this after removing QML files from CMakeLists.txt)
 
 set -e
 
-PRESET="${1:-dev}"
+PRESET="dev"
+CLEAN=false
+
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --clean)
+            CLEAN=true
+            shift
+            ;;
+        dev|release|ci)
+            PRESET="$arg"
+            shift
+            ;;
+    esac
+done
+
+# Check if build directory exists
+if [ ! -f "build/$PRESET/CMakeCache.txt" ]; then
+    echo "Build directory build/$PRESET not configured."
+    echo "Running: cmake --preset $PRESET"
+    cmake --preset "$PRESET"
+fi
+
+# Clean stale QML files if requested
+if [ "$CLEAN" = true ]; then
+    echo "Cleaning stale QML generated files..."
+    # Remove QML build artifacts that CMake doesn't track
+    find "build/$PRESET" -type f -name "qmldir" -o -name "*.qml" | while read -r file; do
+        echo "  Removing: $file"
+        rm -f "$file"
+    done
+    # Force CMake reconfigure to regenerate QML files
+    echo "Reconfiguring CMake..."
+    cmake --preset "$PRESET"
+fi
 
 echo "Building with preset: $PRESET"
-cmake --build "build/$PRESET" "$@"
+cmake --build "build/$PRESET"

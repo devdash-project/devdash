@@ -15,7 +15,9 @@
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
         "source=devdash-claude-config,target=/home/ubuntu/.claude,type=volume",
         "source=devdash-gh-config,target=/home/ubuntu/.config/gh,type=volume",
-        "source=${localEnv:HOME}/.secrets/claude_token,target=/run/secrets/claude_token,type=bind,readonly"
+        "source=${localEnv:HOME}/.secrets/claude_token,target=/run/secrets/claude_token,type=bind,readonly",
+        "source=${localEnv:HOME}/Library/Containers/cc.ffitch.shottr/Data/tmp/cc.ffitch.shottr,target=/mnt/screenshots,type=bind",
+        "source=${localEnv:HOME}/Projects,target=/mnt/projects,type=bind"
     ],
     "forwardPorts": [
         6080
@@ -27,22 +29,19 @@
         "vscode": {
             "extensions": [
                 "llvm-vs-code-extensions.vscode-clangd",
+                "vadimcn.vscode-lldb",
                 "ms-vscode.cmake-tools",
-                "twxs.cmake",
                 "theqtcompany.qt",
                 "theqtcompany.qt-core",
                 "theqtcompany.qt-cpp",
                 "theqtcompany.qt-qml",
                 "theqtcompany.qt-ui",
-                "tonka3000.qtvsctools",
-                "bbenoist.qml",
                 "cschlosser.doxdocgen",
                 "eamodio.gitlens",
                 "editorconfig.editorconfig",
                 "usernamehw.errorlens",
                 "gruntfuggly.todo-tree",
-                "ajshort.include-autocomplete",
-                "vadimcn.vscode-lldb"
+                "ajshort.include-autocomplete"
             ],
             "settings": {
                 "cmake.configureOnOpen": true,
@@ -53,10 +52,29 @@
                     "--header-insertion=iwyu",
                     "--completion-style=detailed"
                 ],
+                "C_Cpp.intelliSenseEngine": "disabled",
                 "editor.formatOnSave": true,
                 "[cpp]": {
                     "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
-                }
+                },
+                "[qml]": {
+                    "editor.defaultFormatter": "theqtcompany.qt-qml",
+                    "editor.formatOnSave": true
+                },
+                "[cmake]": {
+                    "editor.formatOnSave": true
+                },
+                "errorLens.enabledDiagnosticLevels": [
+                    "error",
+                    "warning"
+                ],
+                "todo-tree.general.tags": [
+                    "TODO",
+                    "FIXME",
+                    "BUG",
+                    "HACK",
+                    "XXX"
+                ]
             }
         }
     },

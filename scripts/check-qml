@@ -1,0 +1,71 @@
+#!/bin/bash
+# Check QML files for errors
+# Usage: ./scripts/check-qml [--fix]
+#
+# Runs comprehensive QML validation:
+# 1. qmllint on all QML files
+# 2. QML component loading tests
+# 3. Optional: format QML files
+
+set -e
+
+PRESET="${PRESET:-dev}"
+FIX=false
+
+# Parse arguments
+if [ "$1" = "--fix" ]; then
+    FIX=true
+fi
+
+echo "=== QML Validation Suite ==="
+echo
+
+# Ensure build exists
+if [ ! -f "build/$PRESET/CMakeCache.txt" ]; then
+    echo "Error: Build directory build/$PRESET not configured"
+    echo "Run: cmake --preset $PRESET"
+    exit 1
+fi
+
+# 1. Run qmllint on all QML files
+echo "1. Running qmllint on all QML files..."
+QMLLINT=/usr/lib/qt6/bin/qmllint
+QML_FILES=$(find src -name "*.qml" 2>/dev/null)
+
+LINT_FAILED=false
+for file in $QML_FILES; do
+    echo "  Checking: $file"
+    if ! $QMLLINT "$file" 2>&1 | grep -v "^Info:" | grep -v "^Warning.*unqualified" | grep -v "^Warning.*easing"; then
+        LINT_FAILED=true
+    fi
+done
+
+if [ "$LINT_FAILED" = true ]; then
+    echo "✗ qmllint found errors"
+    exit 1
+else
+    echo "✓ qmllint passed"
+fi
+
+echo
+
+# 2. Run QML component loading tests
+echo "2. Running QML component loading tests..."
+if build/$PRESET/tests/devdash_tests "[qml]" --reporter compact; then
+    echo "✓ QML loading tests passed"
+else
+    echo "✗ QML loading tests failed"
+    exit 1
+fi
+
+echo
+
+# 3. Format QML files (if requested)
+if [ "$FIX" = true ]; then
+    echo "3. Formatting QML files..."
+    # Qt doesn't ship a QML formatter by default, skip for now
+    echo "  (QML formatting not yet configured)"
+fi
+
+echo
+echo "=== ✓ All QML checks passed ==="

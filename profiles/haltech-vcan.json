@@ -42,19 +42,29 @@
             "critical": 12.0
         }
     },
-    "channelMapping": {
-        "rpm": "RPM",
-        "throttlePosition": "Throttle Position",
-        "coolantTemperature": "Engine Coolant Temperature",
-        "oilTemperature": "Engine Oil Temperature",
-        "oilPressure": "Oil Pressure",
-        "fuelPressure": "Fuel Pressure",
-        "manifoldPressure": "Manifold Pressure",
-        "intakeAirTemperature": "Intake Air Temperature",
-        "batteryVoltage": "Battery Voltage",
-        "vehicleSpeed": "Vehicle Speed",
-        "gear": "Gear Position",
-        "widebandLambda": "Wideband Lambda 1"
+    "channelMappings": {
+        "RPM": "rpm",
+        "Throttle Position": "throttlePosition",
+        "Coolant Temperature": "coolantTemperature",
+        "Oil Temperature": "oilTemperature",
+        "Oil Pressure": "oilPressure",
+        "Fuel Pressure": "fuelPressure",
+        "Manifold Pressure": "manifoldPressure",
+        "Air Temperature": "intakeAirTemperature",
+        "Battery Voltage": "batteryVoltage",
+        "Vehicle Speed": "vehicleSpeed",
+        "Current Gear": "gear",
+        "Wideband Lambda 1": "airFuelRatio"
+    },
+    "gearMapping": {
+        "-1": "R",
+        "0": "N",
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6"
     },
     "pd16ChannelMapping": {
         "fan1": "PD16A_output_25a_0",

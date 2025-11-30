@@ -358,7 +358,7 @@ This keeps alert logic centralized and testable.
 ```cpp
 #include <catch2/catch_test_macros.hpp>
 #include <QSignalSpy>
-#include "core/DataBroker.h"
+#include "core/broker/DataBroker.h"
 #include "adapters/simulator/SimulatorAdapter.h"
 
 TEST_CASE("DataBroker receives adapter updates", "[databroker]") {

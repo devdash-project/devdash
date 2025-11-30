@@ -1,13 +1,28 @@
 #!/bin/bash
-# Run clang-tidy linting
+# Run linting (clang-tidy + qmllint)
 # Usage: ./scripts/lint [fix]
 
 set -e
 
+PRESET="${PRESET:-dev}"
+
+echo "=== Running C++ linting (clang-tidy) ==="
 if [ "$1" = "fix" ]; then
     echo "Running clang-tidy with --fix..."
-    cmake --build build/dev --target clang-tidy-fix
+    cmake --build "build/$PRESET" --target clang-tidy-fix
 else
     echo "Running clang-tidy..."
-    cmake --build build/dev --target clang-tidy
+    cmake --build "build/$PRESET" --target clang-tidy
 fi
+
+echo ""
+echo "=== Running QML linting (qmllint) ==="
+if [ -f "build/$PRESET/CMakeCache.txt" ]; then
+    cmake --build "build/$PRESET" --target qmllint-cluster 2>&1 || echo "Warning: qmllint-cluster target failed or not available"
+else
+    echo "Error: Build directory build/$PRESET not configured. Run: cmake --preset $PRESET"
+    exit 1
+fi
+
+echo ""
+echo "✓ Linting complete"

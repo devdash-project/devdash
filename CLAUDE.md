@@ -64,6 +64,104 @@ sudo ./scripts/test-ci-local lint  # Test lint job locally
 
 **Tip:** Testing CI jobs locally with `act` gives you a tight feedback loop - catch issues before pushing to GitHub!
 
+## QML Development & Tooling
+
+### QML Linting (qmllint)
+
+**Always run qmllint before committing QML changes.** This catches syntax errors, type issues, and circular dependencies at development time.
+
+```bash
+# Lint all cluster QML files
+cmake --build build/dev --target qmllint-cluster
+
+# Or use the helper script
+./scripts/check-qml
+```
+
+**Common qmllint warnings to fix:**
+- `Tachometer is not a type` - Module import or registration issue
+- `Cannot read property 'X' of null` - Accessing properties on non-existent parent
+- `unknown grouped property scope` - Invalid property group usage
+
+### QML Language Server (qmlls)
+
+**IDE integration provides real-time QML error detection** with squiggly lines, just like clangd for C++.
+
+**Configuration** (already set up in `.vscode/settings.json` and `.qmlls.ini`):
+- Language server: `/usr/lib/qt6/bin/qmllint`
+- Import paths include build directory for generated QML modules
+- Warnings enabled for unqualified access, missing types, circular dependencies
+
+### QML Component Loading Tests
+
+**All QML windows and components have automated loading tests** to catch errors before runtime.
+
+```cpp
+// tests/cluster/test_qml_loading.cpp
+TEST_CASE("ClusterMain.qml loads without errors", "[qml][cluster]") {
+    DataBroker broker;
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("dataBroker", &broker);
+    engine.load(QUrl("qrc:/DevDash/Cluster/qml/ClusterMain.qml"));
+
+    REQUIRE(!engine.rootObjects().isEmpty());
+    auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+    REQUIRE(window != nullptr);
+}
+```
+
+**Why these tests matter:**
+- QML errors often only show at runtime in specific code paths
+- Tests catch compilation errors, missing imports, and type resolution failures
+- Runs in CI with offscreen rendering (`QT_QPA_PLATFORM=offscreen`)
+
+### QML Module Patterns
+
+**Avoid circular dependencies in QML modules:**
+
+```qml
+// ❌ WRONG - ClusterMain.qml importing its own module
+import DevDash.Cluster  // ClusterMain is PART OF DevDash.Cluster!
+
+Tachometer {  // Type not available during module initialization
+    value: rpm
+}
+
+// ✅ CORRECT - Load sibling components via Loader
+Loader {
+    source: "gauges/Tachometer.qml"  // Relative path within module
+    onLoaded: {
+        item.value = Qt.binding(function() { return rpm })
+    }
+}
+```
+
+**Why this matters:**
+- Files within a QML module can't reliably use types from their own module during initialization
+- Use `Loader` with relative paths for sibling components
+- Module types are for external consumers, not internal use
+
+### QML Debugging Tips
+
+**QML errors don't always show in logs.** Use these tools to diagnose issues:
+
+1. **Run QML tests** - Fastest way to see QML compilation errors
+   ```bash
+   build/dev/tests/devdash_tests "[qml]"
+   ```
+
+2. **Check qmlls output** - IDE diagnostics show errors in real-time
+
+3. **Run qmllint manually** - See all warnings for a specific file
+   ```bash
+   /usr/lib/qt6/bin/qmllint src/cluster/qml/gauges/Tachometer.qml
+   ```
+
+4. **Enable QML debugging** - Set QML_IMPORT_TRACE=1 for import resolution issues
+   ```bash
+   QML_IMPORT_TRACE=1 ./build/dev/devdash --profile profiles/haltech-vcan.json
+   ```
+
 ## Architecture
 
 **Single app, dual display.** One Qt application manages both instrument cluster and head unit windows.
@@ -242,7 +340,7 @@ namespace devdash::protocol { }
 
 ### Documentation (Doxygen)
 
-**All public APIs must have Doxygen documentation. This is mandatory, not optional.**
+**All APIs must have Doxygen documentation, public APIs should include examples. This is mandatory, not optional.**
 
 Use `@` prefix style:
 
@@ -540,6 +638,159 @@ struct AdapterConfig {
 };
 ```
 
+## Type Safety and Configuration Validation
+
+While C++ doesn't have TypeScript's string literal types, we achieve similar safety through **runtime validation with loud failures** and **compile-time tests**:
+
+### Problem: Silent Configuration Mismatches
+
+A profile might reference channel names that don't exist in the protocol:
+
+```json
+// Profile says:
+"channelMappings": {
+    "Engine Coolant Temperature": "coolantTemperature"  // ❌ Doesn't exist!
+}
+
+// But protocol has:
+"channels": [
+    { "name": "Coolant Temperature", ... }  // ✅ Actual name
+]
+```
+
+In TypeScript, this would be a compile error. In C++, it's a runtime mismatch that causes silent data loss.
+
+### Solution 1: Loud Runtime Failures
+
+**DataBroker logs CRITICAL errors for unmapped channels:**
+
+```cpp
+// src/core/broker/DataBroker.cpp:processQueue()
+if (!standardChannel.has_value()) {
+    // LOUD FAILURE: Unmapped channel indicates configuration error
+    qCCritical(logBroker) << "UNMAPPED CHANNEL:" << update.channelName
+                          << "- Check profile channelMappings!";
+    qCCritical(logBroker) << "Available mappings:" << m_channelMappings.keys();
+    qCCritical(logBroker) << "This indicates a mismatch between protocol and profile.";
+    return;  // Don't silently drop data
+}
+```
+
+**Why this works:**
+- Failures are LOUD (qCCritical, not qDebug)
+- Provides actionable context (expected channel names)
+- Fails at first occurrence, not buried in logs
+- Shows up immediately during development/testing
+
+### Solution 2: Compile-Time Validation Tests
+
+**Test verifies profile mappings match protocol definitions:**
+
+```cpp
+// tests/core/broker/test_data_broker.cpp
+TEST_CASE("Profile channel mappings match protocol definition", "[typesafety]") {
+    // Load real protocol
+    HaltechProtocol protocol;
+    protocol.loadDefinition("protocols/haltech/haltech-can-protocol-v2.35.json");
+
+    // Load real profile
+    QFile profileFile("profiles/haltech-vcan.json");
+    QJsonDocument profileDoc = QJsonDocument::fromJson(profileFile.readAll());
+    QJsonObject mappings = profileDoc.object()["channelMappings"].toObject();
+
+    // Get all available channel names from protocol
+    QSet<QString> protocolChannels = protocol.availableChannels();
+
+    // Verify every profile channel exists in protocol
+    for (auto it = mappings.begin(); it != mappings.end(); ++it) {
+        const QString& channelName = it.key();
+        REQUIRE(protocolChannels.contains(channelName));  // ❌ FAILS if mismatch
+    }
+}
+```
+
+**This test caught real bugs:**
+- `"Engine Coolant Temperature"` → should be `"Coolant Temperature"`
+- `"Gear Position"` → should be `"Current Gear"`
+- `"Intake Air Temperature"` → should be `"Air Temperature"`
+
+**Why this works:**
+- Runs on every build/PR
+- Uses REAL protocol and profile files (not mocks)
+- Fails at compile/test time, not production
+- Prevents "works on my machine" config bugs
+
+### Type Safety Best Practices
+
+1. **Use strong types at C++ boundaries:**
+   ```cpp
+   // ❌ Primitive obsession
+   void updateChannel(const QString& name, double value);
+
+   // ✅ Strong typing
+   void updateChannel(const ChannelName& name, const ChannelValue& value);
+   ```
+
+2. **Add tests for configuration consistency:**
+   - Profile channels exist in protocol
+   - Gear mappings reference valid gear numbers
+   - Warning thresholds are in valid ranges
+
+3. **Make invalid states unrepresentable:**
+   ```cpp
+   // ❌ Can be invalid
+   struct ChannelValue {
+       double value;
+       bool valid;  // Redundant flag
+   };
+
+   // ✅ Invalid state is std::nullopt
+   std::optional<double> getChannelValue(const QString& name);
+   ```
+
+4. **Validate external input at boundaries:**
+   ```cpp
+   // CAN data - never trust it
+   if (rpm > MAX_VALID_RPM) {
+       qCWarning() << "Invalid RPM:" << rpm << "- ignoring";
+       return;
+   }
+
+   // JSON config - fail fast on load
+   if (!profile.contains("channelMappings")) {
+       qCCritical() << "Profile missing required 'channelMappings' section";
+       return false;  // Don't continue with invalid config
+   }
+   ```
+
+5. **Use logging categories for debuggability:**
+   ```cpp
+   // Not this:
+   qWarning() << "Channel" << name << "not found";
+
+   // This - filterable and searchable:
+   qCWarning(logBroker) << "Unmapped channel:" << name;
+   ```
+
+### When to Use Each Approach
+
+| Scenario | Approach | Why |
+|----------|----------|-----|
+| **Protocol/profile mismatch** | Compile-time test | Catches config errors before deploy |
+| **Invalid CAN data** | Runtime validation + loud logs | Can't predict all invalid states |
+| **User input** | Strong types + validation | Prevent injection/overflow |
+| **Internal invariants** | `Q_ASSERT` + defensive code | Debug in dev, safe in release |
+
+### Type Safety vs. Configuration Flexibility
+
+We balance type safety with runtime flexibility:
+
+- **Type-safe**: C++ code uses enums, strong types, `std::optional`
+- **Flexible**: JSON configs allow new channels without recompiling
+- **Validated**: Tests ensure configs match expected schemas
+
+This is a hybrid approach - stronger than pure runtime validation, more flexible than pure compile-time types.
+
 ## Testing
 
 We use **Catch2 v3** for unit tests and **Qt Test** only where Qt event loop is required.
@@ -623,6 +874,29 @@ cmake --build build/dev --target format-fix
 
 Format before committing. CI will reject unformatted code.
 
+### IDE Diagnostics (Language Server)
+
+**Claude Code must check IDE diagnostics before considering code complete.**
+
+Use the `mcp__ide__getDiagnostics` tool to verify that the language server (clangd) reports zero warnings/errors:
+
+```typescript
+// Check all diagnostics from clangd
+mcp__ide__getDiagnostics()
+```
+
+This catches issues in real-time that may not appear in build output:
+- Implicit type conversions
+- Unused variables
+- Incorrect function signatures
+- Type mismatches
+- And all clang-tidy warnings
+
+**When to check diagnostics:**
+- After writing or modifying any C++ code
+- Before marking a task as complete
+- When user reports seeing errors in their IDE
+
 ### Pre-commit Checklist
 
 Before committing, ensure:
@@ -631,6 +905,7 @@ Before committing, ensure:
 2. `cmake --build build/dev --target clang-tidy` - Zero lint issues
 3. `cmake --build build/dev --target format-check` - Code is formatted
 4. `ctest --test-dir build/dev` - All tests pass
+5. `mcp__ide__getDiagnostics()` - Zero IDE diagnostics (warnings/errors from clangd)
 
 ## CMake
 

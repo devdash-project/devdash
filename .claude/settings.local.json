@@ -37,10 +37,41 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "Bash(lldb:*)",
-      "Bash(~/.vscode-server/extensions/vadimcn.vscode-lldb-1.11.8/lldb/bin/lldb:*)"
+      "Bash(~/.vscode-server/extensions/vadimcn.vscode-lldb-1.11.8/lldb/bin/lldb:*)",
+      "Bash(./tests/devdash_tests:*)",
+      "Bash(make clang-tidy:*)",
+      "Bash(git mv:*)",
+      "Bash(./scripts/test:*)",
+      "Bash(./scripts/format:*)",
+      "Bash(xargs ls:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(./scripts/setup-haltech-mock:*)",
+      "Bash(timeout:*)",
+      "Bash(apt-file search:*)",
+      "Bash(dpkg:*)",
+      "Bash(pip install:*)",
+      "Bash(./scripts/run-with-mock:*)",
+      "mcp__devdash__devdash_get_state",
+      "mcp__devdash__devdash_screenshot",
+      "Bash(/home/dev/.venv/devdash/bin/haltech-mock:*)",
+      "Bash(mcp__ide__getDiagnostics)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(./build/dev/devdash_tests:*)",
+      "Bash(./build/dev/tests/devdash_tests:*)",
+      "mcp__devdash__devdash_list_windows",
+      "mcp__devdash__devdash_get_logs",
+      "mcp__devdash__devdash_get_warnings",
+      "Bash(/usr/lib/qt6/bin/qmllint:*)",
+      "Bash(./scripts/build:*)",
+      "Bash(build/dev/tests/devdash_tests:*)"
     ],
     "deny": [],
     "ask": []
   },
-  "model": "opusplan"
+  "model": "opusplan",
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "devdash"
+  ]
 }

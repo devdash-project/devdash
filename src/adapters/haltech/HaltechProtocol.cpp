@@ -148,6 +148,19 @@ void HaltechProtocol::buildDecoderTable() {
     }
 }
 
+QSet<QString> HaltechProtocol::availableChannels() const {
+    QSet<QString> channels;
+
+    // Collect all channel names from all frame definitions
+    for (const auto& frameDef : m_frameDefinitions) {
+        for (const auto& channelDef : frameDef.channels) {
+            channels.insert(channelDef.name);
+        }
+    }
+
+    return channels;
+}
+
 HaltechProtocol::FrameDecoder
 HaltechProtocol::createFrameDecoder(const FrameDefinition& frameDef) const {
     // Capture frame definition by value to ensure it outlives the lambda
@@ -158,8 +171,9 @@ HaltechProtocol::createFrameDecoder(const FrameDefinition& frameDef) const {
         for (const auto& channelDef : frameDef.channels) {
             auto decoded = decodeChannel(channelDef, payload);
             if (decoded.has_value()) {
-                QString channelName = toCamelCase(channelDef.name);
-                results.emplace_back(std::move(channelName), std::move(decoded.value()));
+                // Use the channel name as-is from the protocol definition
+                // Profile mappings should match these exact names
+                results.emplace_back(channelDef.name, std::move(decoded.value()));
             }
         }
 

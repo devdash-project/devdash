@@ -1,0 +1,237 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://devdash.io/schemas/channels.schema.json",
+  "title": "DevDash Channel Configuration Schema",
+  "description": "Defines available data channels, their units, ranges, and data source mappings",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version (semantic versioning)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "channels": {
+      "type": "object",
+      "description": "Channel definitions keyed by canonical channel name",
+      "additionalProperties": {
+        "$ref": "#/definitions/channel"
+      }
+    },
+    "dataSources": {
+      "type": "array",
+      "description": "Data sources that provide channel values",
+      "items": {
+        "$ref": "#/definitions/dataSource"
+      }
+    },
+    "channelMappings": {
+      "type": "object",
+      "description": "Maps source-specific channel names to canonical channel names",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Canonical channel name"
+      }
+    },
+    "userPreferences": {
+      "type": "object",
+      "description": "User preferences for unit display",
+      "properties": {
+        "temperature": {
+          "type": "string",
+          "enum": ["C", "F", "K"],
+          "default": "C"
+        },
+        "pressure": {
+          "type": "string",
+          "enum": ["kPa", "psi", "bar", "inHg"],
+          "default": "kPa"
+        },
+        "speed": {
+          "type": "string",
+          "enum": ["km/h", "mph", "m/s"],
+          "default": "km/h"
+        },
+        "distance": {
+          "type": "string",
+          "enum": ["km", "mi", "m", "ft"],
+          "default": "km"
+        },
+        "volume": {
+          "type": "string",
+          "enum": ["L", "gal", "gal_us", "gal_uk", "ml"],
+          "default": "L"
+        },
+        "angle": {
+          "type": "string",
+          "enum": ["deg", "rad"],
+          "default": "deg"
+        }
+      }
+    }
+  },
+  "required": ["version", "channels"],
+  "definitions": {
+    "channel": {
+      "type": "object",
+      "description": "Definition of a single data channel",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable channel name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of what this channel represents"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["double", "int", "bool", "string"],
+          "description": "Data type of channel values"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Native unit of measurement (before conversion)",
+          "examples": ["K", "kPa", "rpm", "rad", "deg", "L", "V", "A", "%"]
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "engine",
+            "transmission",
+            "temperature",
+            "pressure",
+            "speed",
+            "position",
+            "electrical",
+            "fluid",
+            "sensor",
+            "control",
+            "diagnostic",
+            "other"
+          ],
+          "description": "Channel category for organization"
+        },
+        "range": {
+          "type": "object",
+          "description": "Valid value range",
+          "properties": {
+            "min": {
+              "type": "number",
+              "description": "Minimum valid value"
+            },
+            "max": {
+              "type": "number",
+              "description": "Maximum valid value"
+            }
+          },
+          "required": ["min", "max"]
+        },
+        "warningThresholds": {
+          "type": "object",
+          "description": "Warning and critical thresholds",
+          "properties": {
+            "low": {
+              "type": "number",
+              "description": "Low warning threshold"
+            },
+            "high": {
+              "type": "number",
+              "description": "High warning threshold"
+            },
+            "critical": {
+              "type": "number",
+              "description": "Critical threshold"
+            }
+          }
+        },
+        "updateFrequency": {
+          "type": "object",
+          "description": "Expected update frequency from data source",
+          "properties": {
+            "hz": {
+              "type": "number",
+              "description": "Updates per second",
+              "minimum": 0
+            },
+            "description": {
+              "type": "string",
+              "examples": ["50Hz (CAN)", "10Hz", "1Hz", "On change"]
+            }
+          },
+          "required": ["hz"]
+        },
+        "precision": {
+          "type": "integer",
+          "description": "Number of decimal places for display",
+          "minimum": 0,
+          "maximum": 6,
+          "default": 1
+        },
+        "format": {
+          "type": "string",
+          "description": "Optional format string for display",
+          "examples": ["{:.1f}", "{:.0f} RPM", "{:.2f}%"]
+        }
+      },
+      "required": ["name", "type", "unit", "category"]
+    },
+    "dataSource": {
+      "type": "object",
+      "description": "Configuration for a data source",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this data source",
+          "examples": ["haltech_can", "pd16_can", "inclinometer_i2c"]
+        },
+        "type": {
+          "type": "string",
+          "enum": ["can", "i2c", "gpio", "serial", "simulator"],
+          "description": "Type of data source"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this data source is enabled"
+        },
+        "config": {
+          "type": "object",
+          "description": "Source-specific configuration",
+          "properties": {
+            "interface": {
+              "type": "string",
+              "description": "Hardware interface (e.g., 'vcan0', '/dev/i2c-1')"
+            },
+            "protocol": {
+              "type": "string",
+              "description": "Protocol definition file path"
+            },
+            "baudRate": {
+              "type": "integer",
+              "description": "Baud rate for serial/CAN communication"
+            },
+            "address": {
+              "type": "string",
+              "description": "Device address for I2C/network protocols"
+            }
+          }
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Priority when multiple sources provide same channel (higher = preferred)",
+          "minimum": 0,
+          "default": 0
+        },
+        "providedChannels": {
+          "type": "array",
+          "description": "List of canonical channel names this source provides",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["id", "type", "config"]
+    }
+  }
+}

@@ -16,17 +16,29 @@ echo "  haltech-mock Integration Setup"
 echo "═══════════════════════════════════════════════════════════════════════"
 echo ""
 
-# Check if haltech-mock is installed
-if [ ! -x "/opt/haltech-venv/bin/haltech-mock" ]; then
+# Find haltech-mock: check PATH first, then known locations
+MOCK=""
+if command -v haltech-mock &>/dev/null; then
+    MOCK="$(command -v haltech-mock)"
+elif [ -x "/opt/haltech-venv/bin/haltech-mock" ]; then
+    MOCK="/opt/haltech-venv/bin/haltech-mock"
+elif [ -x "$HOME/.venv/devdash/bin/haltech-mock" ]; then
+    MOCK="$HOME/.venv/devdash/bin/haltech-mock"
+fi
+
+if [ -z "$MOCK" ]; then
     echo -e "${RED}✗ haltech-mock not found${NC}"
     echo ""
     echo "Please install haltech-mock:"
     echo "  pip install haltech-mock"
     echo ""
+    echo "Or if using a venv:"
+    echo "  source ~/.venv/devdash/bin/activate && pip install haltech-mock"
+    echo ""
     exit 1
 fi
 
-echo -e "${GREEN}✓ haltech-mock installed${NC} (v$(/opt/haltech-venv/bin/haltech-mock --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo 'unknown'))"
+echo -e "${GREEN}✓ haltech-mock installed${NC} (v$($MOCK --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo 'unknown'))"
 
 # Check if vcan0 exists
 if ip link show vcan0 &>/dev/null; then
@@ -60,7 +72,7 @@ if ip link show vcan0 &>/dev/null; then
             echo ""
             echo "Running quick test: haltech-mock idle scenario for 5 seconds..."
             echo ""
-            /opt/haltech-venv/bin/haltech-mock scenario idle --interface vcan0 --duration 5 &
+            $MOCK scenario idle --interface vcan0 --duration 5 &
             MOCK_PID=$!
             sleep 1
 

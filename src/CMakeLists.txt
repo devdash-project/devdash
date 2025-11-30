@@ -25,6 +25,11 @@ target_link_libraries(devdash PRIVATE
 set_project_warnings(devdash)
 enable_sanitizers(devdash)
 
+# Place binary in build root (e.g., build/dev/devdash instead of build/dev/src/devdash)
+set_target_properties(devdash PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
+
 # Install rules
 install(TARGETS devdash
     BUNDLE DESTINATION .
