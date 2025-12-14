@@ -64,7 +64,17 @@
       "mcp__devdash__devdash_get_warnings",
       "Bash(/usr/lib/qt6/bin/qmllint:*)",
       "Bash(./scripts/build:*)",
-      "Bash(build/dev/tests/devdash_tests:*)"
+      "Bash(build/dev/tests/devdash_tests:*)",
+      "Bash(sudo -S mkdir:*)",
+      "Bash(wget:*)",
+      "Bash(sudo -S tee:*)",
+      "Bash(sudo -S chmod:*)",
+      "Bash(qmake6:*)",
+      "Bash(qmake:*)",
+      "Bash(lsb_release:*)",
+      "Bash(./build/explorer/qml-gauges-explorer:*)",
+      "Bash(xdotool search:*)",
+      "Bash(wmctrl:*)"
     ],
     "deny": [],
     "ask": []

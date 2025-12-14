@@ -9,6 +9,20 @@ qt_add_qml_module(devdash_cluster
     QML_FILES
         qml/ClusterMain.qml
         qml/gauges/Tachometer.qml
+        qml/gauges/radial/primitives/GaugeArc.qml
+        qml/gauges/radial/primitives/GaugeBezel.qml
+        qml/gauges/radial/primitives/GaugeCenterCap.qml
+        qml/gauges/radial/primitives/GaugeFace.qml
+        qml/gauges/radial/primitives/GaugeNeedleTapered.qml
+        qml/gauges/radial/primitives/GaugeNeedleClassic.qml
+        qml/gauges/radial/primitives/GaugeTick.qml
+        qml/gauges/radial/primitives/GaugeTickLabel.qml
+        qml/gauges/radial/compounds/GaugeValueArc.qml
+        qml/gauges/radial/compounds/GaugeZoneArc.qml
+        qml/gauges/radial/compounds/GaugeTickRing.qml
+        qml/gauges/radial/compounds/DigitalReadout.qml
+        qml/gauges/radial/compounds/RollingDigitReadout.qml
+        qml/gauges/radial/RadialGauge.qml
     RESOURCE_PREFIX /
 )
 
@@ -39,13 +53,14 @@ if(QMLLINT_EXECUTABLE)
     set(QML_FILES_TO_LINT
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/ClusterMain.qml
         ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/Tachometer.qml
-        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/primitives/GaugeArc.qml
-        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/primitives/GaugeNeedle.qml
-        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/primitives/GaugeFace.qml
-        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/primitives/GaugeTick.qml
-        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/primitives/GaugeTickLabel.qml
-        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/primitives/GaugeCenterCap.qml
-        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/primitives/GaugeBezel.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeArc.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeNeedleTapered.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeNeedleClassic.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeFace.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeTick.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeTickLabel.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeCenterCap.qml
+        ${CMAKE_CURRENT_SOURCE_DIR}/qml/gauges/radial/primitives/GaugeBezel.qml
     )
 
     add_custom_target(qmllint-cluster

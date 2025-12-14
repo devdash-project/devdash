@@ -4,6 +4,15 @@
 
 A modular automotive dashboard framework built with Qt 6/QML and C++20. Targets NVIDIA Jetson but runs anywhere with Qt support.
 
+### The DevDash Ecosystem
+
+All projects are part of the [devdash-project](https://github.com/devdash-project) organization:
+
+- **[devdash](https://github.com/devdash-project/devdash)** - This project, the main dashboard application
+- **[qml-gauges](https://github.com/devdash-project/qml-gauges)** - Standalone QML gauge component library
+- **[devdash-haltech-mock](https://github.com/devdash-project/haltech-mock)** - Python library for simulating Haltech ECU CAN bus data (PyPI: `devdash-haltech-mock`)
+- **[devdash-mcp](https://github.com/devdash-project/devdash-mcp)** - MCP server for screenshot capture and AI tool integration
+
 ## Build & Run
 
 ```bash

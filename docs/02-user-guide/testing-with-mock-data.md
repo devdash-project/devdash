@@ -348,7 +348,7 @@ done
 
 ## See Also
 
-- [haltech-mock GitHub](https://github.com/YeeP79/haltech-mock)
-- [haltech-mock PyPI](https://pypi.org/project/haltech-mock/)
+- [haltech-mock GitHub](https://github.com/devdash-project/haltech-mock)
+- [haltech-mock PyPI](https://pypi.org/project/devdash-haltech-mock/)
 - [Haltech CAN Protocol V2.35](https://www.haltech.com/support/can-protocol/)
 - `./scripts/list-scenarios` - Quick reference of all scenarios

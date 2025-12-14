@@ -113,6 +113,19 @@ sudo apt install -y \
 log_success "Qt 6 installed"
 
 # -----------------------------------------------------------------------------
+# Step 4b: Qt 6.10+ via Qt Online Installer (for qml-gauges)
+# -----------------------------------------------------------------------------
+# The system Qt 6.2 works for devdash, but qml-gauges requires Qt 6.10+
+# for QtQuick.Effects (MultiEffect) and CurveRenderer features.
+# Qt Online Installer must be run interactively (GUI) to install Qt 6.10.
+#
+# After installing Qt 6.10.1 via the Online Installer, install WebSockets addon:
+#   ~/Qt/MaintenanceTool install qt.qt6.6101.addons.qtwebsockets --accept-licenses --confirm-command
+#
+# This is documented here so it can be added to future automated setup if Qt
+# supports headless installation of base Qt (currently requires GUI login).
+
+# -----------------------------------------------------------------------------
 # Step 5: GStreamer (video/camera support)
 # -----------------------------------------------------------------------------
 log_info "Installing GStreamer..."
@@ -273,7 +286,7 @@ echo ""
 echo "Installed:"
 echo "  - LXQt desktop (sddm display manager)"
 echo "  - Build tools (cmake, ninja, clang, gcc)"
-echo "  - Qt 6 with QML, Multimedia, SerialBus"
+echo "  - Qt 6.2 (system) with QML, Multimedia, SerialBus"
 echo "  - GStreamer with plugins"
 echo "  - PipeWire audio"
 echo "  - Node.js LTS (via nvm)"
@@ -281,6 +294,14 @@ echo "  - Claude Code CLI"
 echo "  - Docker"
 echo "  - CAN utilities + vcan0 service"
 echo "  - Python venv at ~/.venv/devdash"
+echo ""
+echo "For qml-gauges (requires Qt 6.10+):"
+echo "  1. Install Qt 6.10.1 via Qt Online Installer (GUI required)"
+echo "  2. Add WebSockets addon:"
+echo "     ~/Qt/MaintenanceTool install qt.qt6.6101.addons.qtwebsockets --accept-licenses --confirm-command"
+echo "  3. Build qml-gauges with:"
+echo "     cmake -B build -G Ninja -DCMAKE_PREFIX_PATH=\$HOME/Qt/6.10.1/gcc_arm64"
+echo "     cmake --build build"
 echo ""
 echo "Shared folder: /mnt/projects (symlinked to ~/Projects)"
 echo ""
